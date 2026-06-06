@@ -857,6 +857,341 @@ function savePropertyDetail() {
     showModal('saved');
 }
 
+// ─── localStorage Data Layer ───
+const Store = {
+    key: 'dripsolve-demo',
+
+    init() {
+        if (localStorage.getItem(this.key)) return;
+        const seed = { properties: [
+            { id:'dallas', name:'The Residences at Dallas', address:'123 Main St', city:'Dallas', state:'TX', units:24, status:'green', statusLabel:'All good' },
+            { id:'la', name:'Metropolis LA', address:'456 Sunset Blvd', city:'Los Angeles', state:'CA', units:32, status:'green', statusLabel:'All good' },
+            { id:'phoenix', name:'Azure Phoenix', address:'789 Desert Dr', city:'Phoenix', state:'AZ', units:18, status:'yellow', statusLabel:'1 offline' },
+            { id:'atlanta', name:'The Standard Atlanta', address:'321 Peachtree St', city:'Atlanta', state:'GA', units:12, status:'red', statusLabel:'Active alert' }
+        ], sensors: [], tenants: [], logs: [], alerts: [] };
+        this.save(seed);
+    },
+
+    get() { return JSON.parse(localStorage.getItem(this.key) || '{}'); },
+    save(db) { localStorage.setItem(this.key, JSON.stringify(db)); },
+
+    getProperties() { return this.get().properties || []; },
+    getProperty(id) { return this.getProperties().find(p => p.id === id); },
+
+    saveProperties(properties) {
+        const db = this.get();
+        db.properties = properties;
+        this.save(db);
+    },
+
+    saveProperty(id, data) {
+        const props = this.getProperties();
+        const idx = props.findIndex(p => p.id === id);
+        if (idx >= 0) Object.assign(props[idx], data);
+        this.saveProperties(props);
+    },
+
+    addProperty(data) {
+        const props = this.getProperties();
+        data.id = 'p' + Date.now();
+        data.status = 'green';
+        data.statusLabel = 'All good';
+        props.push(data);
+        this.saveProperties(props);
+        return data;
+    },
+
+    removeProperty(id) {
+        const db = this.get();
+        db.properties = db.properties.filter(p => p.id !== id);
+        db.sensors = db.sensors.filter(s => s.propertyId !== id);
+        db.tenants = db.tenants.filter(t => t.propertyId !== id);
+        db.logs = db.logs.filter(l => l.propertyId !== id);
+        this.save(db);
+    },
+
+    getSensors(propertyId) { return this.get().sensors.filter(s => s.propertyId === propertyId); },
+    getAllSensors() { return this.get().sensors || []; },
+
+    addSensor(data) {
+        const db = this.get();
+        data.id = 's' + Date.now();
+        data.status = data.status || 'Online';
+        db.sensors.push(data);
+        this.save(db);
+    },
+
+    getTenants(propertyId) { return this.get().tenants.filter(t => t.propertyId === propertyId); },
+    addTenant(data) {
+        const db = this.get();
+        data.id = 't' + Date.now();
+        db.tenants.push(data);
+        this.save(db);
+    },
+
+    getLogs(propertyId) { return this.get().logs.filter(l => l.propertyId === propertyId); },
+    addLog(data) {
+        const db = this.get();
+        data.id = 'l' + Date.now();
+        db.logs.push(data);
+        this.save(db);
+    },
+
+    getAlerts() { return this.get().alerts || []; },
+
+    getStats() {
+        const props = this.getProperties();
+        const sensors = this.getAllSensors();
+        const online = sensors.filter(s => s.status === 'Online').length;
+        const alerts = this.getAlerts();
+        const activeAlerts = alerts.filter(a => a.status === 'Active').length;
+        const critical = alerts.filter(a => a.status === 'Active' && a.type === 'Critical').length;
+        const warning = alerts.filter(a => a.status === 'Active' && a.type === 'Warning').length;
+        return { properties: props.length, totalSensors: sensors.length, online, offline: sensors.length - online, activeAlerts, critical, warning, prevented: 14 };
+    }
+};
+
+function renderProperties() {
+    const props = Store.getProperties();
+    const wrap = document.querySelector('.prop-grid-wrap .prop-grid');
+    if (!wrap) return;
+    wrap.innerHTML = props.map(p => {
+        const color = p.status === 'green' ? '#22c55e' : p.status === 'yellow' ? '#eab308' : '#dc2626';
+        const health = p.status === 'green' ? 100 : p.status === 'yellow' ? 94 : 92;
+        const sensors = Store.getAllSensors().filter(s => s.propertyId === p.id).length;
+        const alertsCount = Store.getAlerts().filter(a => a.propertyId === p.id && a.status === 'Active').length;
+        return `<div class="prop-card" onclick="showModal('prop-${p.id}')">
+            <div class="prop-head">
+                <div>
+                    <h3>${p.name}</h3>
+                    <div style="font-size:13px;color:#64748b">${p.city}, ${p.state}</div>
+                </div>
+                <span class="dot ${p.status}" style="width:12px;height:12px"></span>
+            </div>
+            <div class="prop-meta">
+                <span>🏠 ${p.units} units</span>
+                <span>📡 ${sensors} sensors</span>
+                <span>${alertsCount > 0 ? '🚨 ' + alertsCount + ' alert' : '✅ 0 alerts'}</span>
+            </div>
+            <div class="prop-bar"><div class="fill" style="width:${health}%;background:${color}"></div></div>
+            <div style="font-size:12px;color:#64748b">Sensor health: ${health}%</div>
+            <div class="prop-actions">
+                <button class="btn btn-outline" style="flex:1" onclick="event.stopPropagation();showModal('prop-${p.id}')">Details</button>
+                <button class="btn" style="flex:1" onclick="event.stopPropagation();showPropertyDetail('${p.id}')">Manage</button>
+            </div>
+        </div>`;
+    }).join('');
+    document.querySelector('#view-properties > div:first-child span').textContent = `${props.length} properties · ${Store.getAllSensors().length} sensors`;
+}
+
+function renderSensorList() {
+    const sensors = Store.getAllSensors();
+    const list = document.getElementById('sensorList');
+    if (!list) return;
+    const items = sensors.map(s => {
+        const prop = Store.getProperty(s.propertyId);
+        const pn = prop ? prop.name : 'Unknown';
+        const isOnline = s.status === 'Online';
+        const iconBg = isOnline ? 'green-bg' : 'yellow-bg';
+        const color = isOnline ? 'green' : 'yellow';
+        const label = isOnline ? '● Online' : '● Offline (battery)';
+        return `<div class="sensor-item" onclick="showModal('sensor-example')" data-property="${pn}" data-status="${s.status}">
+            <div class="sensor-icon ${iconBg}">📡</div>
+            <div class="sensor-info">
+                <h4>${s.location} — Unit ${s.unit}</h4>
+                <p>${pn}</p>
+            </div>
+            <div class="sensor-status ${color}">${label}</div>
+        </div>`;
+    }).join('');
+    list.innerHTML = items + '<div id="sensorEmpty" style="display:none;text-align:center;padding:40px;color:#64748b;font-size:14px">No sensors match your filter.</div>';
+    document.querySelector('#view-sensors > div:first-child span').innerHTML = `<span id="sensorCount">${sensors.length}</span> sensors · <span id="sensorOnline">${sensors.filter(s=>s.status==='Online').length}</span> online · <span id="sensorOffline">${sensors.filter(s=>s.status!=='Online').length}</span> offline`;
+}
+
+function renderDashboardStats() {
+    const s = Store.getStats();
+    document.querySelector('#view-dashboard .cards').innerHTML = `
+        <div class="card" onclick="showModal('properties')">
+            <div class="label">Properties</div>
+            <div class="value">${s.properties}</div>
+            <div class="sub">All monitored</div>
+        </div>
+        <div class="card" onclick="showModal('sensors')">
+            <div class="label">Sensors</div>
+            <div class="value">${s.totalSensors}</div>
+            <div class="sub">${s.online} online · ${s.offline} offline</div>
+        </div>
+        <div class="card" onclick="showModal('alerts')">
+            <div class="label">Active alerts</div>
+            <div class="value red">${s.activeAlerts}</div>
+            <div class="sub">${s.critical} critical · ${s.warning} warning</div>
+        </div>
+        <div class="card" onclick="showModal('prevented')">
+            <div class="label">Leaks prevented</div>
+            <div class="value green">${s.prevented}</div>
+            <div class="sub">Since joining</div>
+        </div>`;
+}
+
+function renderDashboardPropertyList() {
+    const props = Store.getProperties();
+    const container = document.querySelector('#view-dashboard .panel:first-child');
+    if (!container) return;
+    const items = props.slice(0, 4).map(p => {
+        const dot = `<span class="dot ${p.status}"></span>`;
+        return `<div class="property" onclick="showModal('prop-${p.id}')">
+            <div class="info">
+                <h3>${p.name}</h3>
+                <p>${p.city}, ${p.state} · ${p.units} units</p>
+            </div>
+            <div class="status">${dot} ${p.statusLabel}</div>
+        </div>`;
+    }).join('');
+    container.innerHTML = '<h2>Properties <a href="#" onclick="switchView(\'properties\');return false">View all →</a></h2>' + items;
+}
+
+function renderAlerts() {
+    const alerts = Store.getAlerts();
+    const table = document.querySelector('#alertTable');
+    if (!table) return;
+    const rows = alerts.map(a => {
+        const tagClass = a.status === 'Active' ? 'new' : 'resolved';
+        const tagLabel = a.status === 'Active' ? (a.type === 'Critical' ? 'Active' : 'Warning') : 'Resolved';
+        const prop = Store.getProperty(a.propertyId);
+        const pn = prop ? prop.name : 'Unknown';
+        return `<tr onclick="showModal('alert-active')" style="cursor:pointer" data-alert-type="${a.type}">
+            <td><span class="tag ${tagClass}">${a.event}</span></td>
+            <td>${pn}</td>
+            <td>Unit ${a.unit} · ${a.location}</td>
+            <td><span class="tag ${tagClass}">${tagLabel}</span></td>
+            <td>${a.time}</td>
+        </tr>`;
+    }).join('');
+    table.innerHTML = '<tr><th>Event</th><th>Property</th><th>Unit</th><th>Status</th><th>Time</th></tr>' + rows + '</table><div id="alertEmpty" style="display:none;text-align:center;padding:40px;color:#64748b;font-size:14px">No alerts match your filter.</div>';
+}
+
+function renderAll() {
+    renderDashboardStats();
+    renderDashboardPropertyList();
+    renderProperties();
+    renderSensorList();
+    renderAlerts();
+}
+
+// Override showPropertyDetail to use Store
+const _origShowDetail = showPropertyDetail;
+showPropertyDetail = function(id) {
+    const p = Store.getProperty(id);
+    if (!p) return;
+    currentProperty = id;
+    document.getElementById('pdTitle').textContent = p.name;
+    const badge = document.getElementById('pdStatusBadge');
+    badge.textContent = p.statusLabel;
+    badge.className = 'status-badge ' + p.status;
+    document.getElementById('pdName').value = p.name;
+    document.getElementById('pdAddress').value = p.address || '';
+    document.getElementById('pdUnit').value = '';
+    document.getElementById('pdCity').value = p.city || '';
+    document.getElementById('pdState').value = p.state || '';
+    document.getElementById('pdUnits').value = p.units;
+    const sensors = Store.getSensors(id);
+    document.getElementById('pdSensors').value = sensors.length;
+    // Render sensor table
+    let sRows = '<tr><th>Unit</th><th>Location</th><th>Status</th><th>Battery</th></tr>';
+    sensors.forEach(s => {
+        const dot = s.status === 'Online' ? 'green' : 'yellow';
+        const bat = s.battery || (s.status === 'Online' ? Math.floor(60 + Math.random()*35) + '%' : '0%');
+        sRows += `<tr><td>${s.unit}</td><td>${s.location}</td><td><span class="dot ${dot}"></span> ${s.status}</td><td>${bat}</td></tr>`;
+    });
+    if (!sensors.length) sRows += '<tr><td colspan="4" style="text-align:center;color:#94a3b8;padding:20px">No sensors yet. Add one above.</td></tr>';
+    document.getElementById('pdSensorTable').innerHTML = sRows;
+    // Render tenant table
+    const tenants = Store.getTenants(id);
+    let tRows = '<tr><th>Unit</th><th>Name</th><th>Phone</th><th>Notify</th></tr>';
+    tenants.forEach(t => {
+        tRows += `<tr><td><input value="${t.unit}"></td><td><input value="${t.name}"></td><td><input value="${t.phone}"></td><td><select><option ${t.notify === 'Both' ? 'selected' : ''}>Both</option><option ${t.notify === 'SMS' ? 'selected' : ''}>SMS</option><option ${t.notify === 'Email' ? 'selected' : ''}>Email</option></select></td></tr>`;
+    });
+    if (!tenants.length) tRows += '<tr><td colspan="4" style="text-align:center;color:#94a3b8;padding:20px">No tenants yet. Add one above.</td></tr>';
+    document.getElementById('pdTenantTable').innerHTML = tRows;
+    // Render logs
+    const logs = Store.getLogs(id);
+    let lRows = '<tr><th>Date</th><th>Issue</th><th>Unit</th><th>Status</th></tr>';
+    logs.forEach(l => {
+        lRows += `<tr><td>${l.date}</td><td>${l.desc}</td><td>${l.unit}</td><td><span class="tag resolved">${l.status}</span></td></tr>`;
+    });
+    if (!logs.length) lRows += '<tr><td colspan="4" style="text-align:center;color:#94a3b8;padding:20px">No maintenance logs yet.</td></tr>';
+    document.querySelector('#propDetail .detail-card:last-child table').innerHTML = lRows;
+    document.querySelector('.prop-grid-wrap').classList.add('hidden');
+    document.getElementById('propDetail').classList.add('open');
+};
+
+// Override savePropertyDetail
+savePropertyDetail = function() {
+    const id = currentProperty;
+    if (!id) return;
+    const oldName = Store.getProperty(id)?.name || '';
+    Store.saveProperty(id, {
+        name: document.getElementById('pdName').value,
+        address: document.getElementById('pdAddress').value,
+        city: document.getElementById('pdCity').value,
+        state: document.getElementById('pdState').value,
+        units: parseInt(document.getElementById('pdUnits').value) || 0
+    });
+    document.getElementById('pdTitle').textContent = document.getElementById('pdName').value;
+    renderAll();
+    showModal('saved');
+};
+
+// Override form submissions to actually save data
+const _origFormInit = window.addEventListener;
+window.addEventListener = function(){}; // no-op the old one
+
+document.addEventListener('click', function(e) {
+    const btn = e.target.closest('[data-form-submit]');
+    if (!btn) return;
+    const formId = btn.getAttribute('data-form-submit');
+    const form = document.getElementById(formId);
+    if (!form) return;
+    const inputs = form.querySelectorAll('input, select');
+    let valid = true, vals = {};
+    inputs.forEach(inp => {
+        if (inp.required && !inp.value.trim()) { valid = false; inp.style.borderColor = '#dc2626'; }
+        else { inp.style.borderColor = ''; vals[inp.name || inp.placeholder] = inp.value.trim(); }
+    });
+    if (!valid) return;
+    closeModal();
+    const type = formId.replace('form-', '');
+    if (type === 'add-sensor') {
+        const prop = Store.getProperties().find(p => p.name === vals['property']);
+        Store.addSensor({ propertyId: prop ? prop.id : 'dallas', unit: vals['unit'], location: vals['location'], status: 'Online', battery: Math.floor(70 + Math.random()*25) + '%' });
+    } else if (type === 'add-tenant') {
+        const propId = currentProperty || 'dallas';
+        Store.addTenant({ propertyId: propId, unit: vals['unit'], name: vals['name'], phone: vals['phone'], email: vals['email'] || '', notify: vals['notify'] || 'Both' });
+    } else if (type === 'add-log') {
+        const propId = currentProperty || 'dallas';
+        Store.addLog({ propertyId: propId, date: vals['date'], unit: vals['unit'], desc: vals['desc'], status: vals['status'] });
+    } else if (type === 'remove-prop') {
+        Store.removeProperty(currentProperty);
+        currentProperty = null;
+        closePropertyDetail();
+        renderAll();
+        showModal('removed');
+        return;
+    } else if (type === 'add-prop') {
+        Store.addProperty({ name: vals['name'], city: vals['city'], state: vals['state'], units: parseInt(vals['units']) || 10 });
+        renderAll();
+        showModal('saved');
+        return;
+    }
+    renderAll();
+    if (currentProperty) showPropertyDetail(currentProperty);
+    showModal('success-' + type);
+});
+
+// Initialize and render
+Store.init();
+renderAll();
+
 const data = {
     'properties': {
         icon: '🏢',
@@ -946,8 +1281,8 @@ const data = {
         icon: '🏢',
         title: 'Add a property',
         sub: 'New apartment building setup',
-        desc: 'Adding a property is simple. Enter the building name, address, number of units, and we\'ll help you figure out how many sensors you need. DripSolve recommends one sensor per unit in the most common leak locations (under kitchen sink, behind toilet, near water heater).',
-        highlight: '💡 Sensors are $15 each on Amazon. For a 20-unit building: $300 total hardware. No contracts, cancel anytime.'
+        form: '<form id="form-add-prop"><div class="form-group"><label>Building name</label><input name="name" placeholder="e.g. The Madison" required></div><div class="form-row"><div class="form-group"><label>City</label><input name="city" placeholder="City" required></div><div class="form-group"><label>State</label><input name="state" placeholder="State" maxlength="2" required></div></div><div class="form-group"><label>Number of units</label><input name="units" type="number" placeholder="e.g. 20" required></div></form><button class="btn" data-form-submit="form-add-prop">🏢 Add property</button><div class="highlight">💡 Sensors are $15 each on Amazon. For a 20-unit building: $300 total hardware. No contracts, cancel anytime.</div>',
+        wide: true
     },
     'manage-prop': {
         icon: '⚙️',
@@ -1022,9 +1357,8 @@ const data = {
     'remove-prop': {
         icon: '🗑️',
         title: 'Remove property',
-        sub: 'Permanently remove this building from your account',
-        desc: 'This removes the property and all its sensor data from your dashboard. Sensor history will be deleted within 30 days. You can re-add the property later if needed, but history won\'t be restored.',
-        highlight: '⚠️ This is permanent. Download any reports or logs before removing. Sensors in the units will keep working but won\'t report to DripSolve.'
+        sub: 'Are you sure? This cannot be undone.',
+        form: '<p style="color:#64748b;margin-bottom:16px;font-size:14px;line-height:1.7">This permanently removes the property and all its sensor data. History is deleted within 30 days. Download any reports first.</p><button class="btn btn-danger" data-form-submit="form-remove-prop" style="background:#dc2626;color:white;border:none">🗑️ Yes, remove this property</button>',
     },
     'saved': {
         icon: '✅',
@@ -1060,6 +1394,13 @@ const data = {
         sub: 'Portfolio owner · jane@dripsolve.com',
         desc: 'You manage 4 apartment buildings with 86 sensors deployed across your portfolio. Pro plan · $99/mo. Member since March 2026.',
         highlight: '🏢 4 properties · 86 sensors · 14 leaks prevented · $0 in water damage claims since joining.'
+    },
+    'removed': {
+        icon: '🗑️',
+        title: 'Property removed',
+        sub: 'Successfully deleted',
+        desc: 'The property and all associated data has been removed from your account. Sensor data will be permanently deleted within 30 days.',
+        highlight: '💡 You can always add a property again later if needed.'
     }
 };
 
@@ -1096,7 +1437,23 @@ function filterAlerts() {
 }
 
 function showModal(key) {
-    const d = data[key];
+    let d = data[key];
+    // Fallback: dynamic property modal from Store
+    if (!d && key.startsWith('prop-')) {
+        const prop = Store.getProperty(key.replace('prop-', ''));
+        if (prop) {
+            const color = prop.status === 'green' ? 'All good' : prop.status === 'yellow' ? '⚠️ Needs attention' : '🚨 Active alert';
+            const sensors = Store.getSensors(prop.id).length;
+            const alerts = Store.getAlerts().filter(a => a.propertyId === prop.id && a.status === 'Active').length;
+            d = {
+                icon: '🏢',
+                title: prop.name,
+                sub: `${prop.city}, ${prop.state} · ${prop.units} units · Status: ${color}`,
+                desc: `${prop.name} is a ${prop.units}-unit apartment building in ${prop.city}, ${prop.state}. Currently ${sensors} sensors deployed, ${alerts} active alerts. Visit the Manage page to edit details, add sensors, manage tenants, and view maintenance logs.`,
+                highlight: alerts > 0 ? `🚨 ${alerts} active alert(s) — check the Manage page for details.` : `🔒 ${sensors} sensors active · 0 alerts`
+            };
+        }
+    }
     if (!d) return;
     document.getElementById('mIcon').textContent = d.icon;
     document.getElementById('mTitle').textContent = d.title;
