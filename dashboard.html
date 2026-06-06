@@ -69,6 +69,52 @@
 
         .click-hint { text-align: center; margin-bottom: 16px; font-size: 12px; color: #94a3b8; }
 
+        .view { display: none; }
+        .view.active { display: block; }
+
+        .btn { display: inline-block; background: #0d9488; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; }
+        .btn:hover { background: #0f766e; }
+        .btn-outline { background: none; border: 1px solid #0d9488; color: #0d9488; }
+        .btn-outline:hover { background: #f0fdfa; }
+
+        .prop-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 16px; }
+        .prop-card { background: white; border-radius: 12px; padding: 20px; cursor: pointer; transition: box-shadow .15s; }
+        .prop-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        .prop-card .prop-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+        .prop-card h3 { font-size: 16px; font-weight: 600; }
+        .prop-card .prop-meta { font-size: 13px; color: #64748b; display: flex; gap: 16px; flex-wrap: wrap; }
+        .prop-card .prop-meta span { display: flex; align-items: center; gap: 4px; }
+        .prop-card .prop-bar { height: 6px; background: #e2e8f0; border-radius: 100px; margin: 12px 0; overflow: hidden; }
+        .prop-card .prop-bar .fill { height: 100%; border-radius: 100px; }
+        .prop-card .prop-actions { display: flex; gap: 8px; margin-top: 12px; }
+        .prop-card .prop-actions button { font-size: 12px; padding: 6px 14px; }
+
+        .sensor-item { display: flex; align-items: center; gap: 16px; padding: 14px 16px; background: white; border-radius: 12px; margin-bottom: 8px; }
+        .sensor-item .sensor-icon { width: 40px; height: 40px; border-radius: 100px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+        .sensor-item .sensor-icon.green-bg { background: #dcfce7; }
+        .sensor-item .sensor-icon.yellow-bg { background: #fef9c3; }
+        .sensor-item .sensor-icon.red-bg { background: #fee2e2; }
+        .sensor-item .sensor-info { flex: 1; }
+        .sensor-item .sensor-info h4 { font-size: 14px; font-weight: 600; }
+        .sensor-item .sensor-info p { font-size: 12px; color: #64748b; }
+        .sensor-item .sensor-status { font-size: 12px; font-weight: 500; }
+        .sensor-item .sensor-status.green { color: #16a34a; }
+        .sensor-item .sensor-status.yellow { color: #ca8a04; }
+        .sensor-item .sensor-status.red { color: #dc2626; }
+
+        .empty-state { text-align: center; padding: 60px 20px; color: #64748b; }
+        .empty-state .big-icon { font-size: 48px; margin-bottom: 12px; }
+        .empty-state h3 { font-size: 18px; font-weight: 600; color: #0f172a; margin-bottom: 8px; }
+        .empty-state p { font-size: 14px; max-width: 400px; margin: 0 auto 20px; }
+
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; font-size: 12px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: .5px; padding: 12px 16px; border-bottom: 2px solid #e2e8f0; }
+        td { padding: 14px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
+        tr:hover td { background: #f8fafc; }
+        .filter-bar { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+        .filter-bar input { border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 14px; font-size: 14px; flex: 1; min-width: 160px; }
+        .filter-bar select { border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 14px; font-size: 14px; background: white; }
+
         /* Modal */
         .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 1000; align-items: center; justify-content: center; }
         .overlay.open { display: flex; }
@@ -95,12 +141,12 @@
 <body>
     <div class="sidebar">
         <div class="logo"><span>Drip</span>Solve</div>
-        <a href="#" class="active">📊 <span>Dashboard</span></a>
-        <a href="#">🏢 <span>Properties</span></a>
-        <a href="#">📡 <span>Sensors</span></a>
-        <a href="#">🔔 <span>Alerts</span></a>
-        <a href="#">📋 <span>Reports</span></a>
-        <a href="#">⚙️ <span>Settings</span></a>
+        <a href="#" onclick="switchView('dashboard')" class="active" data-view="dashboard">📊 <span>Dashboard</span></a>
+        <a href="#" onclick="switchView('properties')" data-view="properties">🏢 <span>Properties</span></a>
+        <a href="#" onclick="switchView('sensors')" data-view="sensors">📡 <span>Sensors</span></a>
+        <a href="#" onclick="switchView('alerts')" data-view="alerts">🔔 <span>Alerts</span></a>
+        <a href="#" onclick="switchView('reports')" data-view="reports">📋 <span>Reports</span></a>
+        <a href="#" onclick="switchView('settings')" data-view="settings">⚙️ <span>Settings</span></a>
         <div class="spacer"></div>
         <div class="user">
             <div class="avatar">JM</div>
@@ -114,8 +160,8 @@
     <div class="main">
         <div class="topbar">
             <div>
-                <h1>Dashboard</h1>
-                <div class="date">Last updated: June 6, 2026 — 2:48 PM CDT</div>
+                <h1 id="pageTitle">Dashboard</h1>
+                <div class="date" id="pageDate">Last updated: June 6, 2026 — 2:48 PM CDT</div>
             </div>
             <div class="topbar-right">
                 <div style="position: relative;">🔔 <span class="badge">2</span></div>
@@ -123,105 +169,358 @@
             </div>
         </div>
 
-        <div class="click-hint">💡 Click any item to learn what it does</div>
+        <!-- ====== DASHBOARD VIEW ====== -->
+        <div id="view-dashboard" class="view active">
+            <div class="click-hint">💡 Click any item to learn what it does</div>
 
-        <div class="cards">
-            <div class="card" onclick="showModal('properties')">
-                <div class="label">Properties</div>
-                <div class="value">4</div>
-                <div class="sub">All monitored</div>
+            <div class="cards">
+                <div class="card" onclick="showModal('properties')">
+                    <div class="label">Properties</div>
+                    <div class="value">4</div>
+                    <div class="sub">All monitored</div>
+                </div>
+                <div class="card" onclick="showModal('sensors')">
+                    <div class="label">Sensors</div>
+                    <div class="value">86</div>
+                    <div class="sub">84 online · 2 offline</div>
+                </div>
+                <div class="card" onclick="showModal('alerts')">
+                    <div class="label">Active alerts</div>
+                    <div class="value red">2</div>
+                    <div class="sub">1 critical · 1 warning</div>
+                </div>
+                <div class="card" onclick="showModal('prevented')">
+                    <div class="label">Leaks prevented</div>
+                    <div class="value green">14</div>
+                    <div class="sub">Since joining</div>
+                </div>
             </div>
-            <div class="card" onclick="showModal('sensors')">
-                <div class="label">Sensors</div>
-                <div class="value">86</div>
-                <div class="sub">84 online · 2 offline</div>
-            </div>
-            <div class="card" onclick="showModal('alerts')">
-                <div class="label">Active alerts</div>
-                <div class="value red">2</div>
-                <div class="sub">1 critical · 1 warning</div>
-            </div>
-            <div class="card" onclick="showModal('prevented')">
-                <div class="label">Leaks prevented</div>
-                <div class="value green">14</div>
-                <div class="sub">Since joining</div>
+
+            <div class="grid-2">
+                <div class="panel">
+                    <h2>Properties <a href="#" onclick="switchView('properties');return false">View all →</a></h2>
+                    <div class="property" onclick="showModal('prop-dallas')">
+                        <div class="info">
+                            <h3>The Residences at Dallas</h3>
+                            <p>Dallas, TX · 24 units · 24 sensors</p>
+                        </div>
+                        <div class="status"><span class="dot green"></span> All good</div>
+                    </div>
+                    <div class="property" onclick="showModal('prop-la')">
+                        <div class="info">
+                            <h3>Metropolis LA</h3>
+                            <p>Los Angeles, CA · 32 units · 32 sensors</p>
+                        </div>
+                        <div class="status"><span class="dot green"></span> All good</div>
+                    </div>
+                    <div class="property" onclick="showModal('prop-phoenix')">
+                        <div class="info">
+                            <h3>Azure Phoenix</h3>
+                            <p>Phoenix, AZ · 18 units · 18 sensors</p>
+                        </div>
+                        <div class="status"><span class="dot yellow"></span> 1 offline</div>
+                    </div>
+                    <div class="property" onclick="showModal('prop-atlanta')">
+                        <div class="info">
+                            <h3>The Standard Atlanta</h3>
+                            <p>Atlanta, GA · 12 units · 12 sensors</p>
+                        </div>
+                        <div class="status"><span class="dot red"></span> Active alert</div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <h2>Recent alerts <a href="#" onclick="switchView('alerts');return false">All →</a></h2>
+                    <div class="alert" onclick="showModal('alert-active')">
+                        <div class="icon">🚨</div>
+                        <div class="text">
+                            <div class="title">Water detected — Unit 204</div>
+                            <div class="meta">The Standard Atlanta · Kitchen sink</div>
+                        </div>
+                        <span class="tag new">NEW</span>
+                        <div class="time">4 min ago</div>
+                    </div>
+                    <div class="alert" onclick="showModal('alert-offline')">
+                        <div class="icon">⚠️</div>
+                        <div class="text">
+                            <div class="title">Sensor offline</div>
+                            <div class="meta">Azure Phoenix · Unit 12 bathroom</div>
+                        </div>
+                        <div class="time">3 hrs ago</div>
+                    </div>
+                    <div class="alert" onclick="showModal('alert-resolved1')">
+                        <div class="icon">✅</div>
+                        <div class="text">
+                            <div class="title">Leak resolved — Unit 408</div>
+                            <div class="meta">Metropolis LA · Washer connection</div>
+                        </div>
+                        <span class="tag resolved">Resolved</span>
+                        <div class="time">Yesterday</div>
+                    </div>
+                    <div class="alert" onclick="showModal('alert-resolved2')">
+                        <div class="icon">✅</div>
+                        <div class="text">
+                            <div class="title">Leak resolved — Unit 7</div>
+                            <div class="meta">The Residences at Dallas · Water heater</div>
+                        </div>
+                        <span class="tag resolved">Resolved</span>
+                        <div class="time">3 days ago</div>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <div class="grid-2">
-            <div class="panel">
-                <h2>Properties <a href="#">View all →</a></h2>
-                <div class="property" onclick="showModal('prop-dallas')">
-                    <div class="info">
-                        <h3>The Residences at Dallas</h3>
-                        <p>Dallas, TX · 24 units · 24 sensors</p>
-                    </div>
-                    <div class="status"><span class="dot green"></span> All good</div>
-                </div>
-                <div class="property" onclick="showModal('prop-la')">
-                    <div class="info">
-                        <h3>Metropolis LA</h3>
-                        <p>Los Angeles, CA · 32 units · 32 sensors</p>
-                    </div>
-                    <div class="status"><span class="dot green"></span> All good</div>
-                </div>
-                <div class="property" onclick="showModal('prop-phoenix')">
-                    <div class="info">
-                        <h3>Azure Phoenix</h3>
-                        <p>Phoenix, AZ · 18 units · 18 sensors</p>
-                    </div>
-                    <div class="status"><span class="dot yellow"></span> 1 offline</div>
-                </div>
-                <div class="property" onclick="showModal('prop-atlanta')">
-                    <div class="info">
-                        <h3>The Standard Atlanta</h3>
-                        <p>Atlanta, GA · 12 units · 12 sensors</p>
-                    </div>
-                    <div class="status"><span class="dot red"></span> Active alert</div>
-                </div>
+        <!-- ====== PROPERTIES VIEW ====== -->
+        <div id="view-properties" class="view">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+                <div><span style="font-size:14px;color:#64748b">4 properties · 86 sensors</span></div>
+                <button class="btn" onclick="showModal('add-prop')">+ Add property</button>
             </div>
 
-            <div class="panel">
-                <h2>Recent alerts <a href="#">All →</a></h2>
-                <div class="alert" onclick="showModal('alert-active')">
-                    <div class="icon">🚨</div>
-                    <div class="text">
-                        <div class="title">Water detected — Unit 204</div>
-                        <div class="meta">The Standard Atlanta · Kitchen sink</div>
+            <div class="prop-grid">
+                <div class="prop-card" onclick="showModal('prop-dallas')">
+                    <div class="prop-head">
+                        <div>
+                            <h3>The Residences at Dallas</h3>
+                            <div style="font-size:13px;color:#64748b">Dallas, TX</div>
+                        </div>
+                        <span class="dot green" style="width:12px;height:12px"></span>
                     </div>
-                    <span class="tag new">NEW</span>
-                    <div class="time">4 min ago</div>
+                    <div class="prop-meta">
+                        <span>🏠 24 units</span>
+                        <span>📡 24 sensors</span>
+                        <span>✅ 0 alerts</span>
+                    </div>
+                    <div class="prop-bar"><div class="fill green" style="width:100%;background:#22c55e"></div></div>
+                    <div style="font-size:12px;color:#64748b">Sensor health: 100%</div>
+                    <div class="prop-actions">
+                        <button class="btn btn-outline" style="flex:1" onclick="event.stopPropagation();showModal('prop-dallas')">Details</button>
+                        <button class="btn btn-outline" style="flex:1" onclick="event.stopPropagation();showModal('manage-prop')">Manage</button>
+                    </div>
                 </div>
-                <div class="alert" onclick="showModal('alert-offline')">
-                    <div class="icon">⚠️</div>
-                    <div class="text">
-                        <div class="title">Sensor offline</div>
-                        <div class="meta">Azure Phoenix · Unit 12 bathroom</div>
+
+                <div class="prop-card" onclick="showModal('prop-la')">
+                    <div class="prop-head">
+                        <div>
+                            <h3>Metropolis LA</h3>
+                            <div style="font-size:13px;color:#64748b">Los Angeles, CA</div>
+                        </div>
+                        <span class="dot green" style="width:12px;height:12px"></span>
                     </div>
-                    <div class="time">3 hrs ago</div>
+                    <div class="prop-meta">
+                        <span>🏠 32 units</span>
+                        <span>📡 32 sensors</span>
+                        <span>✅ 0 alerts</span>
+                    </div>
+                    <div class="prop-bar"><div class="fill green" style="width:100%;background:#22c55e"></div></div>
+                    <div style="font-size:12px;color:#64748b">Sensor health: 100%</div>
+                    <div class="prop-actions">
+                        <button class="btn btn-outline" style="flex:1" onclick="event.stopPropagation();showModal('prop-la')">Details</button>
+                        <button class="btn btn-outline" style="flex:1" onclick="event.stopPropagation();showModal('manage-prop')">Manage</button>
+                    </div>
                 </div>
-                <div class="alert" onclick="showModal('alert-resolved1')">
-                    <div class="icon">✅</div>
-                    <div class="text">
-                        <div class="title">Leak resolved — Unit 408</div>
-                        <div class="meta">Metropolis LA · Washer connection</div>
+
+                <div class="prop-card" onclick="showModal('prop-phoenix')">
+                    <div class="prop-head">
+                        <div>
+                            <h3>Azure Phoenix</h3>
+                            <div style="font-size:13px;color:#64748b">Phoenix, AZ</div>
+                        </div>
+                        <span class="dot yellow" style="width:12px;height:12px"></span>
                     </div>
-                    <span class="tag resolved">Resolved</span>
-                    <div class="time">Yesterday</div>
+                    <div class="prop-meta">
+                        <span>🏠 18 units</span>
+                        <span>📡 18 sensors</span>
+                        <span>⚠️ 1 offline</span>
+                    </div>
+                    <div class="prop-bar"><div class="fill yellow" style="width:94%;background:#eab308"></div></div>
+                    <div style="font-size:12px;color:#64748b">Sensor health: 94%</div>
+                    <div class="prop-actions">
+                        <button class="btn btn-outline" style="flex:1" onclick="event.stopPropagation();showModal('prop-phoenix')">Details</button>
+                        <button class="btn btn-outline" style="flex:1" onclick="event.stopPropagation();showModal('manage-prop')">Manage</button>
+                    </div>
                 </div>
-                <div class="alert" onclick="showModal('alert-resolved2')">
-                    <div class="icon">✅</div>
-                    <div class="text">
-                        <div class="title">Leak resolved — Unit 7</div>
-                        <div class="meta">The Residences at Dallas · Water heater</div>
+
+                <div class="prop-card" onclick="showModal('prop-atlanta')">
+                    <div class="prop-head">
+                        <div>
+                            <h3>The Standard Atlanta</h3>
+                            <div style="font-size:13px;color:#64748b">Atlanta, GA</div>
+                        </div>
+                        <span class="dot red" style="width:12px;height:12px"></span>
                     </div>
-                    <span class="tag resolved">Resolved</span>
-                    <div class="time">3 days ago</div>
+                    <div class="prop-meta">
+                        <span>🏠 12 units</span>
+                        <span>📡 12 sensors</span>
+                        <span>🚨 1 alert</span>
+                    </div>
+                    <div class="prop-bar"><div class="fill red" style="width:92%;background:#dc2626"></div></div>
+                    <div style="font-size:12px;color:#64748b">Sensor health: 92%</div>
+                    <div class="prop-actions">
+                        <button class="btn btn-outline" style="flex:1" onclick="event.stopPropagation();showModal('prop-atlanta')">Details</button>
+                        <button class="btn btn-outline" style="flex:1" onclick="event.stopPropagation();showModal('manage-prop')">Manage</button>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div class="mock-label">
+        <!-- ====== SENSORS VIEW ====== -->
+        <div id="view-sensors" class="view">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+                <div><span style="font-size:14px;color:#64748b">86 sensors · 84 online · 2 offline</span></div>
+                <div class="filter-bar" style="margin-bottom:0">
+                    <select><option>All properties</option><option>The Residences at Dallas</option><option>Metropolis LA</option><option>Azure Phoenix</option><option>The Standard Atlanta</option></select>
+                    <select><option>All status</option><option>Online</option><option>Offline</option></select>
+                </div>
+            </div>
+
+            <div class="sensor-item" onclick="showModal('sensor-example')">
+                <div class="sensor-icon green-bg">📡</div>
+                <div class="sensor-info">
+                    <h4>Kitchen sink — Unit 101</h4>
+                    <p>The Residences at Dallas</p>
+                </div>
+                <div class="sensor-status green">● Online</div>
+            </div>
+            <div class="sensor-item" onclick="showModal('sensor-example')">
+                <div class="sensor-icon green-bg">📡</div>
+                <div class="sensor-info">
+                    <h4>Bathroom — Unit 101</h4>
+                    <p>The Residences at Dallas</p>
+                </div>
+                <div class="sensor-status green">● Online</div>
+            </div>
+            <div class="sensor-item" onclick="showModal('sensor-example')">
+                <div class="sensor-icon green-bg">📡</div>
+                <div class="sensor-info">
+                    <h4>Water heater — Unit 102</h4>
+                    <p>The Residences at Dallas</p>
+                </div>
+                <div class="sensor-status green">● Online</div>
+            </div>
+            <div class="sensor-item" onclick="showModal('sensor-example')">
+                <div class="sensor-icon green-bg">📡</div>
+                <div class="sensor-info">
+                    <h4>Washer hookup — Unit 103</h4>
+                    <p>The Residences at Dallas</p>
+                </div>
+                <div class="sensor-status green">● Online</div>
+            </div>
+            <div class="sensor-item" onclick="showModal('sensor-example')">
+                <div class="sensor-icon yellow-bg">📡</div>
+                <div class="sensor-info">
+                    <h4>Bathroom — Unit 12</h4>
+                    <p>Azure Phoenix</p>
+                </div>
+                <div class="sensor-status yellow">● Offline (battery)</div>
+            </div>
+            <div class="sensor-item" onclick="showModal('sensor-example')">
+                <div class="sensor-icon green-bg">📡</div>
+                <div class="sensor-info">
+                    <h4>Kitchen sink — Unit 204</h4>
+                    <p>The Standard Atlanta</p>
+                </div>
+                <div class="sensor-status green">● Online</div>
+            </div>
+        </div>
+
+        <!-- ====== ALERTS VIEW ====== -->
+        <div id="view-alerts" class="view">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+                <div><span style="font-size:14px;color:#64748b">Showing last 30 days</span></div>
+                <div class="filter-bar" style="margin-bottom:0">
+                    <select><option>All types</option><option>Critical</option><option>Warning</option><option>Resolved</option></select>
+                </div>
+            </div>
+
+            <table>
+                <tr><th>Event</th><th>Property</th><th>Unit</th><th>Status</th><th>Time</th></tr>
+                <tr onclick="showModal('alert-active')" style="cursor:pointer">
+                    <td><span class="tag new">Water detected</span></td>
+                    <td>The Standard Atlanta</td>
+                    <td>Unit 204 · Kitchen sink</td>
+                    <td><span class="tag new">Active</span></td>
+                    <td>4 min ago</td>
+                </tr>
+                <tr onclick="showModal('alert-offline')" style="cursor:pointer">
+                    <td><span class="tag new">Sensor offline</span></td>
+                    <td>Azure Phoenix</td>
+                    <td>Unit 12 · Bathroom</td>
+                    <td><span class="tag new">Warning</span></td>
+                    <td>3 hrs ago</td>
+                </tr>
+                <tr onclick="showModal('alert-resolved1')" style="cursor:pointer">
+                    <td>✅ Leak resolved</td>
+                    <td>Metropolis LA</td>
+                    <td>Unit 408 · Washer connection</td>
+                    <td><span class="tag resolved">Resolved</span></td>
+                    <td>Yesterday</td>
+                </tr>
+                <tr onclick="showModal('alert-resolved2')" style="cursor:pointer">
+                    <td>✅ Leak resolved</td>
+                    <td>The Residences at Dallas</td>
+                    <td>Unit 7 · Water heater</td>
+                    <td><span class="tag resolved">Resolved</span></td>
+                    <td>3 days ago</td>
+                </tr>
+                <tr onclick="showModal('alert-resolved2')" style="cursor:pointer">
+                    <td>✅ Leak resolved</td>
+                    <td>The Residences at Dallas</td>
+                    <td>Unit 15 · Kitchen sink</td>
+                    <td><span class="tag resolved">Resolved</span></td>
+                    <td>6 days ago</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- ====== REPORTS VIEW ====== -->
+        <div id="view-reports" class="view">
+            <div class="empty-state">
+                <div class="big-icon">📋</div>
+                <h3>Generate reports</h3>
+                <p>Export alert history, sensor health summaries, and property overviews. Share with owners, insurers, or your team.</p>
+                <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+                    <button class="btn" onclick="showModal('report-monthly')">📅 Monthly summary</button>
+                    <button class="btn btn-outline" onclick="showModal('report-alerts')">🚨 Alert log</button>
+                    <button class="btn btn-outline" onclick="showModal('report-health')">📡 Sensor health</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ====== SETTINGS VIEW ====== -->
+        <div id="view-settings" class="view">
+            <div class="panel" style="max-width:600px;margin:0 auto">
+                <h2 style="margin-bottom:20px">Account settings</h2>
+
+                <div style="margin-bottom:20px">
+                    <div style="font-size:13px;font-weight:600;color:#64748b;margin-bottom:4px">Email notifications</div>
+                    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid #f1f5f9">
+                        <div><div style="font-size:14px;font-weight:500">Critical alerts</div><div style="font-size:12px;color:#64748b">Push and email when water is detected</div></div>
+                        <div style="width:44px;height:24px;background:#0d9488;border-radius:100px;position:relative;cursor:pointer"><div style="width:20px;height:20px;background:white;border-radius:100px;position:absolute;top:2px;right:2px"></div></div>
+                    </div>
+                    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid #f1f5f9">
+                        <div><div style="font-size:14px;font-weight:500">Weekly summary</div><div style="font-size:12px;color:#64748b">Every Monday morning</div></div>
+                        <div style="width:44px;height:24px;background:#0d9488;border-radius:100px;position:relative;cursor:pointer"><div style="width:20px;height:20px;background:white;border-radius:100px;position:absolute;top:2px;right:2px"></div></div>
+                    </div>
+                    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid #f1f5f9">
+                        <div><div style="font-size:14px;font-weight:500">Sensor offline alerts</div><div style="font-size:12px;color:#64748b">When a sensor battery dies</div></div>
+                        <div style="width:44px;height:24px;background:#cbd5e1;border-radius:100px;position:relative;cursor:pointer"><div style="width:20px;height:20px;background:white;border-radius:100px;position:absolute;top:2px;left:2px"></div></div>
+                    </div>
+                </div>
+
+                <div style="margin-bottom:20px">
+                    <div style="font-size:13px;font-weight:600;color:#64748b;margin-bottom:8px">Subscription</div>
+                    <div style="background:#f0fdfa;padding:16px;border-radius:8px;display:flex;justify-content:space-between;align-items:center">
+                        <div><div style="font-weight:600">Pro plan</div><div style="font-size:13px;color:#64748b">$99/mo · 100 sensors · 5 properties</div></div>
+                        <button class="btn btn-outline" style="font-size:13px;padding:6px 14px">Manage</button>
+                    </div>
+                </div>
+
+                <button class="btn btn-outline" style="width:100%" onclick="showModal('settings-billing')">💳 Billing & payment</button>
+            </div>
+        </div>
+
+        <div class="mock-label" id="mockLabel">
             ⚡ This is a concept preview of the DripSolve dashboard. Actual interface may vary.
         </div>
     </div>
@@ -238,6 +537,17 @@
     </div>
 
     <script>
+function switchView(view) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById('view-' + view).classList.add('active');
+    document.querySelectorAll('.sidebar a[data-view]').forEach(a => a.classList.remove('active'));
+    let link = document.querySelector('.sidebar a[data-view="' + view + '"]');
+    if (link) link.classList.add('active');
+    const titles = {dashboard:'Dashboard',properties:'Properties',sensors:'Sensors',alerts:'Alerts',reports:'Reports',settings:'Settings'};
+    document.getElementById('pageTitle').textContent = titles[view] || 'Dashboard';
+    document.getElementById('mockLabel').style.display = view === 'dashboard' ? 'block' : 'none';
+}
+
 const data = {
     'properties': {
         icon: '🏢',
@@ -322,6 +632,55 @@ const data = {
         sub: 'The Residences at Dallas · Water heater · 3 days ago',
         desc: 'The water heater in Unit 7 started to rust at a fitting, causing a slow but persistent drip. The sensor detected the moisture and alerted the team. Maintenance replaced the fitting the next morning before the water heater could fail catastrophically.',
         highlight: '💰 Preventive replacement: $15 fitting. Catastrophic water heater failure: $2,500+ in water damage + emergency plumber.'
+    },
+    'add-prop': {
+        icon: '🏢',
+        title: 'Add a property',
+        sub: 'New apartment building setup',
+        desc: 'Adding a property is simple. Enter the building name, address, number of units, and we\'ll help you figure out how many sensors you need. DripSolve recommends one sensor per unit in the most common leak locations (under kitchen sink, behind toilet, near water heater).',
+        highlight: '💡 Sensors are $15 each on Amazon. For a 20-unit building: $300 total hardware. No contracts, cancel anytime.'
+    },
+    'manage-prop': {
+        icon: '⚙️',
+        title: 'Manage property',
+        sub: 'Edit details, view sensors, manage tenants',
+        desc: 'From here you can edit property details, view all sensors assigned to this building, see which units have active alerts, manage tenant contact info for notifications, and access maintenance logs. You can also pause monitoring or remove a property.',
+        highlight: '🔧 Each property gets a dedicated dashboard page showing every unit\'s sensor status in real time.'
+    },
+    'sensor-example': {
+        icon: '📡',
+        title: 'WiFi leak sensor',
+        sub: 'DripSolve compatible · ~$15 on Amazon',
+        desc: 'These are simple battery-powered moisture detectors. They sit on the floor under sinks, behind toilets, or next to water heaters. When water touches the sensor prongs, it sends an alert over WiFi to your dashboard within seconds. No hub needed — they connect directly to the building\'s WiFi.',
+        highlight: '🔋 Battery lasts ~1 year. Replace with 2 AA batteries. If the battery dies, the sensor reports itself as "offline" so you know.'
+    },
+    'report-monthly': {
+        icon: '📅',
+        title: 'Monthly summary report',
+        sub: 'Auto-generated PDF emailed to you',
+        desc: 'A clean summary of everything that happened last month: total alerts, time-to-response, leaks prevented, sensor health across all properties, and recommendations. Share it with property owners, insurance adjusters, or your management team. Generated on the 1st of every month.',
+        highlight: '📎 Reports include a timeline of every alert with timestamps — useful for insurance audits and proving due diligence.'
+    },
+    'report-alerts': {
+        icon: '🚨',
+        title: 'Alert log export',
+        sub: 'Full CSV or PDF of every alert',
+        desc: 'Export a complete log of every alert across all properties. Filterable by date range, property, unit, and alert type. Get timestamps, response times, and resolution notes. Perfect for insurance claims or quarterly reviews.',
+        highlight: '📎 Every alert is timestamped and immutable. Insurers love this level of documentation.'
+    },
+    'report-health': {
+        icon: '📡',
+        title: 'Sensor health report',
+        sub: 'Battery levels, connectivity, uptime',
+        desc: 'See the status of every sensor in your portfolio. Which ones have low battery, which have been offline, and overall uptime percentages. Schedule battery replacements before sensors die — no more gaps in protection.',
+        highlight: '🔋 Pro tip: Check this report monthly and replace any sensor under 20% battery. Keeps coverage at 100%.'
+    },
+    'settings-billing': {
+        icon: '💳',
+        title: 'Billing',
+        sub: 'Pro plan · $99/mo',
+        desc: 'Monthly billing via credit card. No contracts — cancel anytime. You keep your sensors and can still use them with other platforms if you leave. Invoices available for download. Annual billing available at 2 months off ($990/yr).',
+        highlight: '💰 Cancel anytime. No early termination fees. Your data is exportable on cancellation.'
     }
 };
 
