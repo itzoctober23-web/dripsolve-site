@@ -862,13 +862,48 @@ const Store = {
     key: 'dripsolve-demo',
 
     init() {
-        if (localStorage.getItem(this.key)) return;
-        const seed = { properties: [
+        const existing = localStorage.getItem(this.key);
+        const ver = existing ? JSON.parse(existing).version : 0;
+        if (ver >= 1) return;
+        const seed = {
+            version: 1, properties: [
             { id:'dallas', name:'The Residences at Dallas', address:'123 Main St', city:'Dallas', state:'TX', units:24, status:'green', statusLabel:'All good' },
             { id:'la', name:'Metropolis LA', address:'456 Sunset Blvd', city:'Los Angeles', state:'CA', units:32, status:'green', statusLabel:'All good' },
             { id:'phoenix', name:'Azure Phoenix', address:'789 Desert Dr', city:'Phoenix', state:'AZ', units:18, status:'yellow', statusLabel:'1 offline' },
             { id:'atlanta', name:'The Standard Atlanta', address:'321 Peachtree St', city:'Atlanta', state:'GA', units:12, status:'red', statusLabel:'Active alert' }
-        ], sensors: [], tenants: [], logs: [], alerts: [] };
+        ], sensors: [
+            { id:'s1', propertyId:'dallas', unit:'101', location:'Kitchen sink', status:'Online', battery:'82%' },
+            { id:'s2', propertyId:'dallas', unit:'101', location:'Bathroom', status:'Online', battery:'76%' },
+            { id:'s3', propertyId:'dallas', unit:'102', location:'Water heater', status:'Online', battery:'91%' },
+            { id:'s4', propertyId:'dallas', unit:'103', location:'Washer hookup', status:'Online', battery:'64%' },
+            { id:'s5', propertyId:'dallas', unit:'104', location:'Toilet', status:'Online', battery:'55%' },
+            { id:'s6', propertyId:'la', unit:'201', location:'Kitchen sink', status:'Online', battery:'88%' },
+            { id:'s7', propertyId:'la', unit:'201', location:'Bathroom', status:'Online', battery:'72%' },
+            { id:'s8', propertyId:'la', unit:'202', location:'Water heater', status:'Online', battery:'43%' },
+            { id:'s9', propertyId:'la', unit:'203', location:'Washer hookup', status:'Online', battery:'67%' },
+            { id:'s10', propertyId:'la', unit:'204', location:'Dishwasher', status:'Online', battery:'90%' },
+            { id:'s11', propertyId:'phoenix', unit:'1', location:'Kitchen sink', status:'Online', battery:'78%' },
+            { id:'s12', propertyId:'phoenix', unit:'5', location:'Water heater', status:'Online', battery:'34%' },
+            { id:'s13', propertyId:'phoenix', unit:'12', location:'Bathroom', status:'Offline', battery:'0%' },
+            { id:'s14', propertyId:'phoenix', unit:'8', location:'Toilet', status:'Online', battery:'61%' },
+            { id:'s15', propertyId:'atlanta', unit:'204', location:'Kitchen sink', status:'Online', battery:'95%' },
+            { id:'s16', propertyId:'atlanta', unit:'205', location:'Bathroom', status:'Online', battery:'49%' },
+            { id:'s17', propertyId:'atlanta', unit:'206', location:'Water heater', status:'Online', battery:'83%' },
+            { id:'s18', propertyId:'atlanta', unit:'207', location:'Washer hookup', status:'Online', battery:'71%' }
+        ], tenants: [
+            { id:'t1', propertyId:'dallas', unit:'101', name:'Sarah Johnson', phone:'(214) 555-0101', email:'sarah@email.com', notify:'Both' },
+            { id:'t2', propertyId:'dallas', unit:'102', name:'Mike Torres', phone:'(214) 555-0102', email:'mike@email.com', notify:'Both' },
+            { id:'t3', propertyId:'dallas', unit:'103', name:'Amy Chen', phone:'(214) 555-0103', email:'amy@email.com', notify:'Email' }
+        ], logs: [
+            { id:'l1', propertyId:'dallas', date:'2026-05-28', unit:'7', desc:'Water heater fitting replaced', status:'Done' },
+            { id:'l2', propertyId:'dallas', date:'2026-05-15', unit:'12', desc:'Sensor battery replaced', status:'Done' },
+            { id:'l3', propertyId:'dallas', date:'2026-04-30', unit:'All', desc:'Routine inspection', status:'Done' }
+        ], alerts: [
+            { id:'a1', propertyId:'atlanta', unit:'204', location:'Kitchen sink', event:'Water detected', type:'Critical', status:'Active', time:'4 min ago' },
+            { id:'a2', propertyId:'phoenix', unit:'12', location:'Bathroom', event:'Sensor offline', type:'Warning', status:'Active', time:'3 hrs ago' },
+            { id:'a3', propertyId:'la', unit:'408', location:'Washer connection', event:'Leak resolved', type:'Resolved', status:'Resolved', time:'Yesterday' },
+            { id:'a4', propertyId:'dallas', unit:'7', location:'Water heater', event:'Leak resolved', type:'Resolved', status:'Resolved', time:'3 days ago' }
+        ] };
         this.save(seed);
     },
 
