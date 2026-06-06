@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard — DripSolve</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', -apple-system, sans-serif; background: #f1f5f9; color: #0f172a; display: flex; min-height: 100vh; }
+
+        .sidebar { width: 240px; background: #0f172a; color: white; padding: 24px; display: flex; flex-direction: column; flex-shrink: 0; }
+        .sidebar .logo { font-size: 22px; font-weight: 800; color: #0d9488; margin-bottom: 40px; }
+        .sidebar .logo span { color: white; }
+        .sidebar a { color: #94a3b8; text-decoration: none; padding: 12px 16px; border-radius: 8px; margin-bottom: 4px; font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 12px; }
+        .sidebar a.active { background: #1e293b; color: white; }
+        .sidebar a:hover { background: #1e293b; color: white; }
+        .sidebar .spacer { flex: 1; }
+        .sidebar .user { border-top: 1px solid #1e293b; padding-top: 16px; margin-top: 16px; display: flex; align-items: center; gap: 12px; }
+        .sidebar .user .avatar { width: 36px; height: 36px; background: #0d9488; border-radius: 100px; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 14px; }
+
+        .main { flex: 1; padding: 24px 32px; min-width: 0; }
+        .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; }
+        .topbar h1 { font-size: 24px; font-weight: 700; }
+        .topbar .date { color: #64748b; font-size: 14px; }
+        .topbar-right { display: flex; align-items: center; gap: 16px; }
+        .badge { background: #dc2626; color: white; font-size: 12px; padding: 2px 8px; border-radius: 100px; font-weight: 600; }
+
+        .cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+        .card { background: white; padding: 20px; border-radius: 12px; cursor: pointer; transition: box-shadow .15s; }
+        .card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        .card .label { font-size: 13px; color: #64748b; margin-bottom: 4px; }
+        .card .value { font-size: 28px; font-weight: 700; }
+        .card .sub { font-size: 12px; color: #0d9488; margin-top: 4px; }
+        .card .value.red { color: #dc2626; }
+        .card .value.green { color: #0d9488; }
+
+        .grid-2 { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; }
+
+        .panel { background: white; border-radius: 12px; padding: 24px; }
+        .panel h2 { font-size: 16px; font-weight: 600; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
+        .panel h2 a { font-size: 13px; font-weight: 400; color: #0d9488; text-decoration: none; }
+
+        .property { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; border-bottom: 1px solid #f1f5f9; cursor: pointer; border-radius: 8px; margin: 0 -8px; padding: 16px 8px; transition: background .15s; }
+        .property:hover { background: #f8fafc; }
+        .property:last-child { border-bottom: none; }
+        .property .info h3 { font-size: 15px; font-weight: 600; }
+        .property .info p { font-size: 13px; color: #64748b; }
+        .property .status { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; }
+        .dot { width: 8px; height: 8px; border-radius: 100px; display: inline-block; }
+        .dot.green { background: #22c55e; }
+        .dot.red { background: #dc2626; }
+        .dot.yellow { background: #eab308; }
+
+        .alert { display: flex; gap: 12px; padding: 12px 8px; border-bottom: 1px solid #f1f5f9; align-items: flex-start; cursor: pointer; border-radius: 8px; margin: 0 -8px; transition: background .15s; }
+        .alert:hover { background: #f8fafc; }
+        .alert:last-child { border-bottom: none; }
+        .alert .icon { font-size: 20px; }
+        .alert .text { flex: 1; min-width: 0; }
+        .alert .text .title { font-size: 14px; font-weight: 600; }
+        .alert .text .meta { font-size: 12px; color: #64748b; margin-top: 2px; }
+        .alert .time { font-size: 12px; color: #94a3b8; white-space: nowrap; }
+        .alert .tag { font-size: 11px; padding: 2px 8px; border-radius: 100px; font-weight: 600; }
+        .tag.new { background: #dc2626; color: white; }
+        .tag.resolved { background: #dcfce7; color: #166534; }
+
+        .mock-label { text-align: center; margin-top: 32px; padding: 12px; background: #fef3c7; border-radius: 8px; font-size: 13px; color: #92400e; }
+
+        .click-hint { text-align: center; margin-bottom: 16px; font-size: 12px; color: #94a3b8; }
+
+        /* Modal */
+        .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 1000; align-items: center; justify-content: center; }
+        .overlay.open { display: flex; }
+        .modal { background: white; border-radius: 16px; max-width: 520px; width: 90%; padding: 32px; position: relative; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
+        .modal .close { position: absolute; top: 16px; right: 16px; background: none; border: none; font-size: 20px; cursor: pointer; color: #94a3b8; }
+        .modal .modal-icon { font-size: 32px; margin-bottom: 12px; display: block; }
+        .modal h3 { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+        .modal .modal-sub { font-size: 13px; color: #64748b; margin-bottom: 16px; }
+        .modal p { font-size: 14px; line-height: 1.7; color: #334155; margin-bottom: 16px; }
+        .modal .highlight { background: #f0fdfa; padding: 12px 16px; border-radius: 8px; font-size: 13px; color: #0f766e; }
+        .modal .highlight strong { color: #0d9488; }
+
+        @media (max-width: 900px) {
+            .sidebar { width: 72px; padding: 16px 8px; }
+            .sidebar a span, .sidebar .user > div, .sidebar .logo span { display: none; }
+            .sidebar .logo { font-size: 20px; text-align: center; }
+            .sidebar .user { justify-content: center; }
+            .cards { grid-template-columns: repeat(2, 1fr); }
+            .grid-2 { grid-template-columns: 1fr; }
+            .main { padding: 16px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="logo"><span>Drip</span>Solve</div>
+        <a href="#" class="active">📊 <span>Dashboard</span></a>
+        <a href="#">🏢 <span>Properties</span></a>
+        <a href="#">📡 <span>Sensors</span></a>
+        <a href="#">🔔 <span>Alerts</span></a>
+        <a href="#">📋 <span>Reports</span></a>
+        <a href="#">⚙️ <span>Settings</span></a>
+        <div class="spacer"></div>
+        <div class="user">
+            <div class="avatar">JM</div>
+            <div>
+                <div style="font-size: 14px; font-weight: 600;">Jane Miller</div>
+                <div style="font-size: 12px; color: #64748b;">Portfolio owner</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="main">
+        <div class="topbar">
+            <div>
+                <h1>Dashboard</h1>
+                <div class="date">Last updated: June 6, 2026 — 2:48 PM CDT</div>
+            </div>
+            <div class="topbar-right">
+                <div style="position: relative;">🔔 <span class="badge">2</span></div>
+                <div>👤</div>
+            </div>
+        </div>
+
+        <div class="click-hint">💡 Click any item to learn what it does</div>
+
+        <div class="cards">
+            <div class="card" onclick="showModal('properties')">
+                <div class="label">Properties</div>
+                <div class="value">4</div>
+                <div class="sub">All monitored</div>
+            </div>
+            <div class="card" onclick="showModal('sensors')">
+                <div class="label">Sensors</div>
+                <div class="value">86</div>
+                <div class="sub">84 online · 2 offline</div>
+            </div>
+            <div class="card" onclick="showModal('alerts')">
+                <div class="label">Active alerts</div>
+                <div class="value red">2</div>
+                <div class="sub">1 critical · 1 warning</div>
+            </div>
+            <div class="card" onclick="showModal('prevented')">
+                <div class="label">Leaks prevented</div>
+                <div class="value green">14</div>
+                <div class="sub">Since joining</div>
+            </div>
+        </div>
+
+        <div class="grid-2">
+            <div class="panel">
+                <h2>Properties <a href="#">View all →</a></h2>
+                <div class="property" onclick="showModal('prop-dallas')">
+                    <div class="info">
+                        <h3>The Residences at Dallas</h3>
+                        <p>Dallas, TX · 24 units · 24 sensors</p>
+                    </div>
+                    <div class="status"><span class="dot green"></span> All good</div>
+                </div>
+                <div class="property" onclick="showModal('prop-la')">
+                    <div class="info">
+                        <h3>Metropolis LA</h3>
+                        <p>Los Angeles, CA · 32 units · 32 sensors</p>
+                    </div>
+                    <div class="status"><span class="dot green"></span> All good</div>
+                </div>
+                <div class="property" onclick="showModal('prop-phoenix')">
+                    <div class="info">
+                        <h3>Azure Phoenix</h3>
+                        <p>Phoenix, AZ · 18 units · 18 sensors</p>
+                    </div>
+                    <div class="status"><span class="dot yellow"></span> 1 offline</div>
+                </div>
+                <div class="property" onclick="showModal('prop-atlanta')">
+                    <div class="info">
+                        <h3>The Standard Atlanta</h3>
+                        <p>Atlanta, GA · 12 units · 12 sensors</p>
+                    </div>
+                    <div class="status"><span class="dot red"></span> Active alert</div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2>Recent alerts <a href="#">All →</a></h2>
+                <div class="alert" onclick="showModal('alert-active')">
+                    <div class="icon">🚨</div>
+                    <div class="text">
+                        <div class="title">Water detected — Unit 204</div>
+                        <div class="meta">The Standard Atlanta · Kitchen sink</div>
+                    </div>
+                    <span class="tag new">NEW</span>
+                    <div class="time">4 min ago</div>
+                </div>
+                <div class="alert" onclick="showModal('alert-offline')">
+                    <div class="icon">⚠️</div>
+                    <div class="text">
+                        <div class="title">Sensor offline</div>
+                        <div class="meta">Azure Phoenix · Unit 12 bathroom</div>
+                    </div>
+                    <div class="time">3 hrs ago</div>
+                </div>
+                <div class="alert" onclick="showModal('alert-resolved1')">
+                    <div class="icon">✅</div>
+                    <div class="text">
+                        <div class="title">Leak resolved — Unit 408</div>
+                        <div class="meta">Metropolis LA · Washer connection</div>
+                    </div>
+                    <span class="tag resolved">Resolved</span>
+                    <div class="time">Yesterday</div>
+                </div>
+                <div class="alert" onclick="showModal('alert-resolved2')">
+                    <div class="icon">✅</div>
+                    <div class="text">
+                        <div class="title">Leak resolved — Unit 7</div>
+                        <div class="meta">The Residences at Dallas · Water heater</div>
+                    </div>
+                    <span class="tag resolved">Resolved</span>
+                    <div class="time">3 days ago</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mock-label">
+            ⚡ This is a concept preview of the DripSolve dashboard. Actual interface may vary.
+        </div>
+    </div>
+
+    <div class="overlay" id="modalOverlay" onclick="closeModal(event)">
+        <div class="modal" id="modalContent">
+            <button class="close" onclick="closeModal()">✕</button>
+            <span class="modal-icon" id="mIcon"></span>
+            <h3 id="mTitle"></h3>
+            <div class="modal-sub" id="mSub"></div>
+            <p id="mDesc"></p>
+            <div class="highlight" id="mHighlight"></div>
+        </div>
+    </div>
+
+    <script>
+const data = {
+    'properties': {
+        icon: '🏢',
+        title: 'Properties',
+        sub: 'All 4 apartment buildings you manage',
+        desc: 'Each property is a separate apartment building you own or manage. DripSolve monitors every unit in each building for water leaks. You can add unlimited properties depending on your plan. Click a specific property below to see its details.',
+        highlight: '💡 One sensor in every unit costs ~$15. For a 24-unit building, that\'s $360 total hardware. Well under one insurance deductible.'
+    },
+    'sensors': {
+        icon: '📡',
+        title: 'Sensors',
+        sub: '86 sensors deployed · 84 online · 2 offline',
+        desc: 'Sensors are small WiFi-connected leak detectors placed in each apartment unit — under kitchen sinks, near water heaters, behind washing machines, and around toilets. They detect moisture instantly and send an alert to your phone, email, and this dashboard.',
+        highlight: '💡 Tenants don\'t even notice them. They sit under the sink and just work. If a leak starts at 2 AM, you know before the tenant wakes up.'
+    },
+    'alerts': {
+        icon: '🔔',
+        title: 'Active alerts',
+        sub: '2 active · 1 critical · 1 warning',
+        desc: 'Alerts are the core of DripSolve. A critical alert means water has been detected — you should respond immediately. A warning usually means a sensor battery is low or it lost WiFi connection. Every alert is logged so you have an audit trail for insurance claims.',
+        highlight: '💡 The average water damage claim is ~$10,000. Catching one leak early can save 100x your annual subscription.'
+    },
+    'prevented': {
+        icon: '✅',
+        title: 'Leaks prevented',
+        sub: '14 leaks caught early since joining',
+        desc: 'This counter tracks every alert that was resolved before it caused significant damage. Each number represents a real water leak that was detected, reported, and fixed — likely saving thousands in repairs. This number goes up every time someone acts on an alert.',
+        highlight: '💡 Imagine 14 water damage claims avoided. At ~$10K average per claim, that\'s ~$140,000 in prevented damage for your properties.'
+    },
+    'prop-dallas': {
+        icon: '🏢',
+        title: 'The Residences at Dallas',
+        sub: 'Dallas, TX · 24 units · Status: All good',
+        desc: 'A mid-rise apartment building with 24 units. Every unit has a sensor under the kitchen sink and behind the toilet — the two most common leak locations. All sensors are online and reporting. Green dot means no leaks detected anywhere in the building.',
+        highlight: '🔒 24 sensors active · 0 alerts · Last maintenance check: 2 days ago'
+    },
+    'prop-la': {
+        icon: '🏢',
+        title: 'Metropolis LA',
+        sub: 'Los Angeles, CA · 32 units · Status: All good',
+        desc: 'A larger complex in LA with 32 units. The biggest property on this dashboard. Each unit has a sensor at the water heater closet and the washing machine hookup — high-risk spots. Everything is green and quiet.',
+        highlight: '🔒 32 sensors active · 0 alerts · Last alert resolved: Yesterday (Unit 408 washer)'
+    },
+    'prop-phoenix': {
+        icon: '🏢',
+        title: 'Azure Phoenix',
+        sub: 'Phoenix, AZ · 18 units · Status: 1 offline',
+        desc: 'An 18-unit property in Phoenix. Most sensors are fine, but Unit 12\'s bathroom sensor has gone offline (yellow indicator). This likely means the battery died or the WiFi in that unit lost connection. No active leak detected, but the dead sensor means no protection for Unit 12 until it\'s back.',
+        highlight: '⚠️ Unit 12 bathroom sensor offline (battery likely dead). Replace battery — ~$2 at the hardware store.'
+    },
+    'prop-atlanta': {
+        icon: '🏢',
+        title: 'The Standard Atlanta',
+        sub: 'Atlanta, GA · 12 units · Status: Active alert',
+        desc: 'A 12-unit building with an active leak alert. The kitchen sink sensor in Unit 204 detected moisture. The tenant may have spilled water, or there could be a real plumbing issue. The alert was triggered 4 minutes ago and is flagged NEW — waiting for a response.',
+        highlight: '🚨 Unit 204 kitchen sink — water detected 4 min ago. Tenant & maintenance notified automatically. Respond to the alert to mark it resolved.'
+    },
+    'alert-active': {
+        icon: '🚨',
+        title: 'Water detected — Unit 204',
+        sub: 'The Standard Atlanta · Kitchen sink · 4 min ago',
+        desc: 'This is a critical alert. The sensor under the kitchen sink in Unit 204 at The Standard Atlanta detected moisture. DripSolve immediately sent an SMS alert to the property manager and an email notification. The tenant may also have been notified if configured. The longer this stays open, the higher the risk of water damage.',
+        highlight: '⏱️ Recommended action: Contact the tenant or maintenance to check under the kitchen sink. Could be a drip, a burst pipe, or even just a wet floor. Verify and then mark resolved.'
+    },
+    'alert-offline': {
+        icon: '⚠️',
+        title: 'Sensor offline',
+        sub: 'Azure Phoenix · Unit 12 bathroom · 3 hrs ago',
+        desc: 'The sensor in Unit 12\'s bathroom stopped reporting. This happens when the battery dies or the sensor loses WiFi connection. It\'s a warning-level alert because there\'s no active leak detection for that unit until the sensor comes back online.',
+        highlight: '🔋 These sensors run on AA batteries for about 1 year. A $2 battery swap fixes it. The unit may need a quick visit from maintenance.'
+    },
+    'alert-resolved1': {
+        icon: '✅',
+        title: 'Leak resolved — Unit 408',
+        sub: 'Metropolis LA · Washer connection · Resolved yesterday',
+        desc: 'The washing machine supply line in Unit 408 developed a slow drip. The sensor detected moisture within minutes and alerted the property manager. Maintenance tightened the connection that same day. The leak was caught early — no damage beyond a damp floor that dried quickly. This alert is marked resolved.',
+        highlight: '💰 Cost of fix: $0 (just tightened a loose connection). Cost if not caught: likely $5K+ in water damage to the unit below.'
+    },
+    'alert-resolved2': {
+        icon: '✅',
+        title: 'Leak resolved — Unit 7',
+        sub: 'The Residences at Dallas · Water heater · 3 days ago',
+        desc: 'The water heater in Unit 7 started to rust at a fitting, causing a slow but persistent drip. The sensor detected the moisture and alerted the team. Maintenance replaced the fitting the next morning before the water heater could fail catastrophically.',
+        highlight: '💰 Preventive replacement: $15 fitting. Catastrophic water heater failure: $2,500+ in water damage + emergency plumber.'
+    }
+};
+
+function showModal(key) {
+    const d = data[key];
+    if (!d) return;
+    document.getElementById('mIcon').textContent = d.icon;
+    document.getElementById('mTitle').textContent = d.title;
+    document.getElementById('mSub').textContent = d.sub;
+    document.getElementById('mDesc').textContent = d.desc;
+    document.getElementById('mHighlight').textContent = d.highlight;
+    document.getElementById('modalOverlay').classList.add('open');
+}
+
+function closeModal(e) {
+    if (e && e.target !== e.currentTarget) return;
+    document.getElementById('modalOverlay').classList.remove('open');
+}
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeModal({ target: e.currentTarget, currentTarget: e.currentTarget });
+});
+    </script>
+</body>
+</html>
