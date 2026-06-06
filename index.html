@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DripSolve — Water Leak Detection SaaS for Apartments</title>
+    <title>DripSolve — Water Leak Prevention for Apartments</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
@@ -50,48 +50,39 @@
         .stat .num { font-size: 32px; font-weight: 800; color: #0d9488; }
         .stat .label { font-size: 14px; color: #64748b; margin-top: 4px; }
 
-        .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; position: relative; }
+        .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; }
         .step { text-align: center; }
         .step-num { width: 48px; height: 48px; background: #0d9488; color: white; border-radius: 100px; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 700; margin: 0 auto 20px; }
         .step h3 { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
         .step p { font-size: 15px; color: #64748b; margin: 0; }
 
-        .pricing-switch { display: flex; justify-content: center; align-items: center; gap: 16px; margin-bottom: 48px; }
-        .pricing-switch span { font-size: 15px; color: #64748b; }
-        .pricing-switch .active { color: #0f172a; font-weight: 600; }
-        .toggle { width: 48px; height: 26px; background: #cbd5e1; border-radius: 100px; position: relative; cursor: pointer; }
-        .toggle .dot { width: 20px; height: 20px; background: white; border-radius: 100px; position: absolute; top: 3px; left: 3px; transition: all 0.2s; }
-        .toggle.active { background: #0d9488; }
-        .toggle.active .dot { left: 25px; }
-        .pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
-        .plan { border: 1px solid #e2e8f0; border-radius: 16px; padding: 40px 32px; }
+        .pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 48px; }
+        .plan { border: 1px solid #e2e8f0; border-radius: 16px; padding: 40px 32px; display: flex; flex-direction: column; }
         .plan.popular { border: 2px solid #0d9488; position: relative; }
         .plan.popular::before { content: "Most popular"; position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: #0d9488; color: white; font-size: 12px; font-weight: 600; padding: 4px 16px; border-radius: 100px; }
         .plan .name { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
-        .plan .desc { font-size: 14px; color: #64748b; margin-bottom: 24px; }
+        .plan .desc { font-size: 14px; color: #64748b; margin-bottom: 24px; flex: 1; }
         .plan .price { font-size: 42px; font-weight: 800; }
         .plan .price span { font-size: 16px; font-weight: 400; color: #64748b; }
         .plan ul { list-style: none; margin: 24px 0; }
         .plan ul li { padding: 8px 0; font-size: 14px; color: #475569; }
         .plan ul li::before { content: "\2713\0020"; color: #0d9488; font-weight: 700; }
-        .plan .btn { width: 100%; text-align: center; }
+        .plan .btn { width: 100%; text-align: center; margin-top: auto; box-sizing: border-box; }
 
         .faq-grid { max-width: 700px; margin: 0 auto; }
         .faq-item { border-bottom: 1px solid #e2e8f0; padding: 24px 0; cursor: pointer; }
         .faq-q { display: flex; justify-content: space-between; font-weight: 600; font-size: 16px; }
         .faq-q .arrow { color: #94a3b8; transition: transform 0.2s; }
         .faq-item.open .faq-q .arrow { transform: rotate(180deg); }
-        .faq-a { display: none; margin-top: 12px; color: #64748b; font-size: 15px; }
+        .faq-a { display: none; margin-top: 12px; color: #64748b; font-size: 15px; line-height: 1.7; }
         .faq-item.open .faq-a { display: block; }
 
-        .cta { background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%); color: white; text-align: center; padding: 100px 0; border-radius: 0; }
+        .cta { background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%); color: white; text-align: center; padding: 100px 0; }
         .cta h2 { color: white; }
-        .cta p { color: rgba(255,255,255,0.8); margin-bottom: 32px; }
+        .cta p { color: rgba(255,255,255,0.8); margin-bottom: 32px; max-width: 560px; margin-left: auto; margin-right: auto; }
         .cta .btn-primary { background: white; color: #0d9488; }
-        .cta .btn-primary:hover { background: #f0fdfa; }
 
         footer { padding: 48px 0; text-align: center; color: #94a3b8; font-size: 14px; border-top: 1px solid #e2e8f0; }
-        footer a { color: #0d9488; text-decoration: none; }
 
         @media (max-width: 768px) {
             .hero h1 { font-size: 36px; }
@@ -106,7 +97,6 @@
         <div class="logo"><span>Drip</span>Solve</div>
         <div class="nav-links">
             <a href="#how">How it works</a>
-            <a href="#features">Features</a>
             <a href="#pricing">Pricing</a>
             <a href="#faq">FAQ</a>
             <a href="mailto:hello@dripsolve.com" class="btn btn-primary" style="padding: 10px 24px; font-size: 14px;">Get started</a>
@@ -115,10 +105,10 @@
 
     <div class="hero">
         <div class="container">
-            <div class="hero-badge">Used by 50+ properties</div>
-            <h1>Water leaks cost you <span>thousands</span>.<br>We tell you before it does.</h1>
-            <p>Real-time leak detection for apartment buildings. Simple sensors, instant alerts, no construction. Know the second a leak starts.</p>
-            <a href="mailto:hello@dripsolve.com" class="btn btn-primary">Start your free trial</a>
+            <div class="hero-badge">Trusted by property managers across the US</div>
+            <h1>Water leaks cost you <span>thousands</span>.<br>We stop them before they start.</h1>
+            <p>We set up and monitor a complete leak detection system for your buildings. You get alerts, reports, and peace of mind — no hardware to manage, no install to deal with.</p>
+            <a href="mailto:hello@dripsolve.com" class="btn btn-primary">Get a free quote</a>
             <a href="#how" class="btn btn-outline">See how it works</a>
         </div>
     </div>
@@ -126,23 +116,23 @@
     <section id="how">
         <div class="container">
             <span class="section-label">How it works</span>
-            <h2>Three steps to never chasing a leak again</h2>
-            <p>Install in minutes, not days. No wiring, no construction, no disruption.</p>
+            <h2>We handle everything. You just relax.</h2>
+            <p>No hardware, no install, no maintenance on your end. We do it all.</p>
             <div class="steps">
                 <div class="step">
                     <div class="step-num">1</div>
-                    <h3>Place sensors</h3>
-                    <p>Stick wireless sensors under sinks, behind toilets, near water heaters. Takes 2 minutes per unit.</p>
+                    <h3>We assess your property</h3>
+                    <p>We walk through your building, identify high-risk areas, and design a leak detection plan tailored to your layout.</p>
                 </div>
                 <div class="step">
                     <div class="step-num">2</div>
-                    <h3>Connect & monitor</h3>
-                    <p>Sensors connect to our dashboard automatically. No WiFi setup, no IT needed.</p>
+                    <h3>We set up the system</h3>
+                    <p>We install and configure everything — sensors, dashboard, alerts. You don't lift a finger or buy a thing.</p>
                 </div>
                 <div class="step">
                     <div class="step-num">3</div>
-                    <h3>Get alerted instantly</h3>
-                    <p>The second water touches a sensor, you get a text and email. Not when the tenant calls — now.</p>
+                    <h3>We monitor 24/7</h3>
+                    <p>Our team watches your dashboard. If something happens, you get a call before water does damage.</p>
                 </div>
             </div>
         </div>
@@ -152,10 +142,10 @@
         <div class="container">
             <div class="problem-grid">
                 <div class="problem-content">
-                    <span class="section-label" style="text-align: left;">The math is simple</span>
-                    <h2>A small leak costs you way more than our sensors</h2>
-                    <p>The average water damage claim is over $10,000. Most leaks go unnoticed for days until a tenant reports it — by then the damage is done.</p>
-                    <p>Our sensors catch it in the first 60 seconds. Total cost per unit? Less than a coffee per month.</p>
+                    <span class="section-label" style="text-align: left;">The real cost of water damage</span>
+                    <h2>One undetected leak can wipe out months of profit</h2>
+                    <p>The average water damage insurance claim is over $10,000. Most leaks go unnoticed for days until a tenant reports it — mold, structural damage, and lost rent pile up fast.</p>
+                    <p>With DripSolve, you know the second water touches a sensor. Not hours later. Not days. Seconds.</p>
                 </div>
                 <div class="stat-grid">
                     <div class="stat">
@@ -167,142 +157,134 @@
                         <div class="label">Less damage with early detection</div>
                     </div>
                     <div class="stat">
-                        <div class="num">60s</div>
-                        <div class="label">Detection time with DripSolve</div>
+                        <div class="num">24/7</div>
+                        <div class="label">We monitor your properties</div>
                     </div>
                     <div class="stat">
-                        <div class="num">2 min</div>
-                        <div class="label">Install time per sensor</div>
+                        <div class="num">0</div>
+                        <div class="label">Hardware or install cost for you</div>
                     </div>
                 </div>
             </div>
         </div>
     </section>
 
-    <section id="features">
+    <section>
         <div class="container">
-            <span class="section-label">Features</span>
-            <h2>Everything you need to stop chasing water leaks</h2>
-            <p>No bloated platform, no hidden fees. Just what works.</p>
+            <span class="section-label">What's included</span>
+            <h2>Everything you need, nothing you don't</h2>
+            <p>A complete service. We bring the tools, expertise, and monitoring.</p>
             <div class="grid-3">
                 <div class="card">
-                    <div class="icon">📡</div>
-                    <h3>Real-time alerts</h3>
-                    <p>Text, email, or push notification the instant water is detected. No delay, no false alarms.</p>
+                    <div class="icon">🔍</div>
+                    <h3>Property assessment</h3>
+                    <p>We evaluate your building and identify every leak risk. Custom plan for each property.</p>
                 </div>
                 <div class="card">
-                    <div class="icon">🔋</div>
-                    <h3>5-year battery</h3>
-                    <p>Set it and forget it. Each sensor lasts 5+ years — no charging, no wiring, no maintenance.</p>
+                    <div class="icon">📡</div>
+                    <h3>Full system setup</h3>
+                    <p>We install and configure sensors, dashboard, and alert routing. Everything included.</p>
                 </div>
                 <div class="card">
                     <div class="icon">📊</div>
-                    <h3>Dashboard & reports</h3>
-                    <p>See all properties, all sensor status, and all alerts in one view. PDF reports for owners.</p>
+                    <h3>Dashboard & monitoring</h3>
+                    <p>Live dashboard showing all sensors and status. Our team monitors it around the clock.</p>
                 </div>
                 <div class="card">
-                    <div class="icon">🔌</div>
-                    <h3>No WiFi needed</h3>
-                    <p>Sensors use their own network. No tenant WiFi, no IT support, no passwords to manage.</p>
+                    <div class="icon">📱</div>
+                    <h3>Instant alerts</h3>
+                    <p>Text and email the second a leak is detected. Call alerts for critical situations.</p>
                 </div>
                 <div class="card">
-                    <div class="icon">🚿</div>
-                    <h3>Smart shutoff ready</h3>
-                    <p>Integrate with auto-shutoff valves to kill water automatically when a leak is detected.</p>
+                    <div class="icon">📋</div>
+                    <h3>Monthly reports</h3>
+                    <p>Detailed report each month — alerts, system health, recommendations. Perfect for owners.</p>
                 </div>
                 <div class="card">
-                    <div class="icon">🏢</div>
-                    <h3>Multi-property view</h3>
-                    <p>Manage all your buildings from one dashboard. Perfect for portfolios of 50+ units.</p>
+                    <div class="icon">🛠️</div>
+                    <h3>Ongoing support</h3>
+                    <p>We maintain and update the system. If something needs attention, we handle it.</p>
                 </div>
             </div>
         </div>
     </section>
 
-    <section id="pricing">
+    <section id="pricing" style="background: #f8fafc;">
         <div class="container">
             <span class="section-label">Pricing</span>
-            <h2>Simple pricing, no surprises</h2>
-            <p>One price per unit. Includes hardware, monitoring, and support.</p>
-            <div class="pricing-switch">
-                <span class="active" id="monthly-label">Monthly</span>
-                <div class="toggle" id="pricing-toggle">
-                    <div class="dot"></div>
-                </div>
-                <span id="yearly-label">Yearly <span style="color: #0d9488; font-weight: 600;">Save 20%</span></span>
-            </div>
+            <h2>Simple and transparent</h2>
+            <p>No hardware fees, no contracts. Pay per building, cancel anytime.</p>
             <div class="pricing-grid">
                 <div class="plan">
-                    <div class="name">Starter</div>
-                    <div class="desc">For small buildings testing the waters</div>
-                    <div class="price" id="price-starter">$8<span>/unit/mo</span></div>
+                    <div class="name">Single Building</div>
+                    <div class="desc">Perfect for testing the service or small properties</div>
+                    <div class="price">$249<span>/building/mo</span></div>
                     <ul>
-                        <li>Up to 50 units</li>
-                        <li>Wireless sensors included</li>
-                        <li>Real-time alerts (text + email)</li>
-                        <li>Dashboard access</li>
+                        <li>Full property assessment</li>
+                        <li>Complete system setup</li>
+                        <li>24/7 monitoring</li>
+                        <li>Real-time alerts</li>
+                        <li>Monthly reports</li>
                         <li>Email support</li>
                     </ul>
-                    <a href="mailto:hello@dripsolve.com" class="btn btn-outline" style="display: block;">Get started</a>
+                    <a href="mailto:hello@dripsolve.com?subject=Single%20Building%20Plan" class="btn btn-outline" style="display: block; text-align: center; text-decoration: none;">Get started</a>
                 </div>
                 <div class="plan popular">
-                    <div class="name">Professional</div>
-                    <div class="desc">For growing portfolios that need peace of mind</div>
-                    <div class="price" id="price-professional">$6<span>/unit/mo</span></div>
+                    <div class="name">Portfolio</div>
+                    <div class="desc">For 3+ buildings at the best value</div>
+                    <div class="price">$199<span>/building/mo</span></div>
                     <ul>
-                        <li>Up to 500 units</li>
-                        <li>Wireless sensors included</li>
-                        <li>Real-time alerts (text + email + call)</li>
-                        <li>Multi-property dashboard</li>
-                        <li>Monthly reports</li>
-                        <li>Priority support</li>
-                        <li>Smart shutoff integration</li>
+                        <li>Everything in Single Building</li>
+                        <li>Multi-building dashboard</li>
+                        <li>Priority alerts (phone calls)</li>
+                        <li>Quarterly in-person reviews</li>
+                        <li>Dedicated account manager</li>
+                        <li>Same-day support</li>
                     </ul>
-                    <a href="mailto:hello@dripsolve.com" class="btn btn-primary" style="display: block;">Get started</a>
+                    <a href="mailto:hello@dripsolve.com?subject=Portfolio%20Plan" class="btn btn-primary" style="display: block; text-align: center; text-decoration: none;">Get started</a>
                 </div>
                 <div class="plan">
                     <div class="name">Enterprise</div>
                     <div class="desc">For large portfolios with custom needs</div>
-                    <div class="price" id="price-enterprise">$4<span>/unit/mo</span></div>
+                    <div class="price">Custom</div>
                     <ul>
-                        <li>500+ units</li>
-                        <li>Wireless sensors included</li>
-                        <li>Everything in Professional</li>
-                        <li>API access</li>
-                        <li>Custom integrations</li>
-                        <li>Dedicated support</li>
+                        <li>Everything in Portfolio</li>
+                        <li>Custom reporting</li>
+                        <li>API integration</li>
+                        <li>Insurance partnership docs</li>
+                        <li>Dedicated support team</li>
                         <li>Bulk deployment</li>
                     </ul>
-                    <a href="mailto:hello@dripsolve.com" class="btn btn-outline" style="display: block;">Contact us</a>
+                    <a href="mailto:hello@dripsolve.com?subject=Enterprise%20Plan" class="btn btn-outline" style="display: block; text-align: center; text-decoration: none;">Contact us</a>
                 </div>
             </div>
         </div>
     </section>
 
-    <section id="faq" style="padding: 80px 0;">
+    <section id="faq">
         <div class="container">
             <span class="section-label">FAQ</span>
             <h2>Common questions</h2>
             <div class="faq-grid">
                 <div class="faq-item">
-                    <div class="faq-q">Does this require WiFi or internet at the property?<span class="arrow">▼</span></div>
-                    <div class="faq-a">No. Our sensors use a dedicated wireless network (IoT) that connects to our hub via cellular. No tenant WiFi, no IT configuration, no passwords to share.</div>
+                    <div class="faq-q">Do I need to buy sensors or hardware?<span class="arrow">▼</span></div>
+                    <div class="faq-a">Nope. Everything is included in the monthly price. We bring, install, and maintain all equipment. If something breaks, we replace it at no cost.</div>
                 </div>
                 <div class="faq-item">
-                    <div class="faq-q">How long does installation take?<span class="arrow">▼</span></div>
-                    <div class="faq-a">About 2 minutes per sensor. Stick it under the sink, behind the toilet, or near the water heater. No tools, no drilling, no wiring.</div>
+                    <div class="faq-q">How long does setup take?<span class="arrow">▼</span></div>
+                    <div class="faq-a">Usually 1-2 days for a typical building. We walk through the property, place sensors in high-risk areas, configure the dashboard, and test everything. You're live by end of day 2.</div>
                 </div>
                 <div class="faq-item">
                     <div class="faq-q">What happens when a leak is detected?<span class="arrow">▼</span></div>
-                    <div class="faq-a">You get a text and email in under 60 seconds. If you have smart shutoff valves installed, we can kill the water automatically. No waiting for a tenant to notice.</div>
+                    <div class="faq-a">You get a text and email immediately. Depending on your plan, we also call you directly. We can also alert your maintenance team or shutoff valve system if integrated.</div>
                 </div>
                 <div class="faq-item">
-                    <div class="faq-q">How much does water damage actually cost?<span class="arrow">▼</span></div>
-                    <div class="faq-a">The average insurance claim for water damage is $10,000+. Undetected leaks can easily cause $50k+ in structural damage. Our service costs less than a coffee per unit per month.</div>
+                    <div class="faq-q">Is there a contract?<span class="arrow">▼</span></div>
+                    <div class="faq-a">No long-term contracts. Month-to-month, cancel anytime. We're confident you'll stay because the service pays for itself the first time it catches a leak.</div>
                 </div>
                 <div class="faq-item">
-                    <div class="faq-q">Can I try it before committing?<span class="arrow">▼</span></div>
-                    <div class="faq-a">Absolutely. We offer a free pilot program — we'll install sensors in 5 units and you can see the system in action. No commitment, no credit card.</div>
+                    <div class="faq-q">What areas do you serve?<span class="arrow">▼</span></div>
+                    <div class="faq-a">We currently operate in TX, CA, AZ, FL, and GA. Expanding to more states based on demand.</div>
                 </div>
             </div>
         </div>
@@ -310,9 +292,9 @@
 
     <div class="cta">
         <div class="container">
-            <h2>Stop chasing water leaks.</h2>
-            <p>Start your free pilot today. 5 units, no commitment, no credit card.</p>
-            <a href="mailto:hello@dripsolve.com" class="btn btn-primary">Email hello@dripsolve.com</a>
+            <h2>Ready to stop worrying about water leaks?</h2>
+            <p>Email us for a free quote. No pressure, no sales pitch — just straight talk about protecting your property.</p>
+            <a href="mailto:hello@dripsolve.com" class="btn btn-primary" style="text-decoration: none;">Email hello@dripsolve.com</a>
         </div>
     </div>
 
@@ -323,23 +305,6 @@
     <script>
         document.querySelectorAll('.faq-item').forEach(item => {
             item.addEventListener('click', () => item.classList.toggle('open'));
-        });
-        const toggle = document.getElementById('pricing-toggle');
-        const monthly = document.getElementById('monthly-label');
-        const yearly = document.getElementById('yearly-label');
-        const prices = {
-            starter: document.getElementById('price-starter'),
-            professional: document.getElementById('price-professional'),
-            enterprise: document.getElementById('price-enterprise')
-        };
-        toggle.addEventListener('click', () => {
-            toggle.classList.toggle('active');
-            monthly.classList.toggle('active');
-            yearly.classList.toggle('active');
-            const isYearly = toggle.classList.contains('active');
-            prices.starter.innerHTML = isYearly ? '$6<span>/unit/mo</span>' : '$8<span>/unit/mo</span>';
-            prices.professional.innerHTML = isYearly ? '$5<span>/unit/mo</span>' : '$6<span>/unit/mo</span>';
-            prices.enterprise.innerHTML = isYearly ? '$3<span>/unit/mo</span>' : '$4<span>/unit/mo</span>';
         });
     </script>
 </body>
