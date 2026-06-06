@@ -152,14 +152,28 @@
         /* Modal */
         .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 1000; align-items: center; justify-content: center; }
         .overlay.open { display: flex; }
-        .modal { background: white; border-radius: 16px; max-width: 520px; width: 90%; padding: 32px; position: relative; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
+        .modal { background: white; border-radius: 16px; max-width: 540px; width: 90%; padding: 32px; position: relative; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
         .modal .close { position: absolute; top: 16px; right: 16px; background: none; border: none; font-size: 20px; cursor: pointer; color: #94a3b8; }
         .modal .modal-icon { font-size: 32px; margin-bottom: 12px; display: block; }
         .modal h3 { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
         .modal .modal-sub { font-size: 13px; color: #64748b; margin-bottom: 16px; }
-        .modal p { font-size: 14px; line-height: 1.7; color: #334155; margin-bottom: 16px; }
-        .modal .highlight { background: #f0fdfa; padding: 12px 16px; border-radius: 8px; font-size: 13px; color: #0f766e; }
+        .modal .modal-desc { font-size: 14px; line-height: 1.7; color: #334155; margin-bottom: 16px; }
+        .modal .highlight { background: #f0fdfa; padding: 12px 16px; border-radius: 8px; font-size: 13px; color: #0f766e; margin-top: 16px; }
         .modal .highlight strong { color: #0d9488; }
+
+        .modal .form-group { margin-bottom: 14px; }
+        .modal .form-group label { display: block; font-size: 12px; font-weight: 600; color: #64748b; margin-bottom: 4px; }
+        .modal .form-group input, .modal .form-group select { width: 100%; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 14px; font-size: 14px; }
+        .modal .form-group input:focus, .modal .form-group select:focus { outline: none; border-color: #0d9488; }
+        .modal .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .modal .btn { width: 100%; margin-top: 8px; }
+
+        .toggle { width: 44px; height: 24px; border-radius: 100px; position: relative; cursor: pointer; flex-shrink: 0; }
+        .toggle .knob { width: 20px; height: 20px; background: white; border-radius: 100px; position: absolute; top: 2px; transition: all .2s; }
+        .toggle.on { background: #0d9488; }
+        .toggle.on .knob { right: 2px; left: auto; }
+        .toggle.off { background: #cbd5e1; }
+        .toggle.off .knob { left: 2px; right: auto; }
 
         @media (max-width: 900px) {
             .sidebar { width: 72px; padding: 16px 8px; }
@@ -726,15 +740,15 @@
                     <div style="font-size:13px;font-weight:600;color:#64748b;margin-bottom:4px">Email notifications</div>
                     <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid #f1f5f9">
                         <div><div style="font-size:14px;font-weight:500">Critical alerts</div><div style="font-size:12px;color:#64748b">Push and email when water is detected</div></div>
-                        <div style="width:44px;height:24px;background:#0d9488;border-radius:100px;position:relative;cursor:pointer"><div style="width:20px;height:20px;background:white;border-radius:100px;position:absolute;top:2px;right:2px"></div></div>
+                        <div class="toggle on" onclick="this.classList.toggle('on');this.classList.toggle('off')"><div class="knob"></div></div>
                     </div>
                     <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid #f1f5f9">
                         <div><div style="font-size:14px;font-weight:500">Weekly summary</div><div style="font-size:12px;color:#64748b">Every Monday morning</div></div>
-                        <div style="width:44px;height:24px;background:#0d9488;border-radius:100px;position:relative;cursor:pointer"><div style="width:20px;height:20px;background:white;border-radius:100px;position:absolute;top:2px;right:2px"></div></div>
+                        <div class="toggle on" onclick="this.classList.toggle('on');this.classList.toggle('off')"><div class="knob"></div></div>
                     </div>
                     <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid #f1f5f9">
                         <div><div style="font-size:14px;font-weight:500">Sensor offline alerts</div><div style="font-size:12px;color:#64748b">When a sensor battery dies</div></div>
-                        <div style="width:44px;height:24px;background:#cbd5e1;border-radius:100px;position:relative;cursor:pointer"><div style="width:20px;height:20px;background:white;border-radius:100px;position:absolute;top:2px;left:2px"></div></div>
+                        <div class="toggle off" onclick="this.classList.toggle('on');this.classList.toggle('off')"><div class="knob"></div></div>
                     </div>
                 </div>
 
@@ -761,8 +775,7 @@
             <span class="modal-icon" id="mIcon"></span>
             <h3 id="mTitle"></h3>
             <div class="modal-sub" id="mSub"></div>
-            <p id="mDesc"></p>
-            <div class="highlight" id="mHighlight"></div>
+            <div id="mBody"></div>
         </div>
     </div>
 
@@ -974,22 +987,22 @@ const data = {
         icon: '📡',
         title: 'Add a sensor',
         sub: 'Assign a sensor to a unit',
-        desc: 'Enter the unit number, location (kitchen sink, bathroom, water heater, washer hookup), and sensor ID. Each sensor has a unique ID printed on the back. The sensor will appear in the dashboard once it connects to WiFi.',
-        highlight: '💡 Compatible sensors are ~$15 on Amazon. Any WiFi moisture sensor works — DripSolve doesn\'t lock you into proprietary hardware.'
+        form: '<form id="form-add-sensor"><div class="form-row"><div class="form-group"><label>Unit number</label><input name="unit" placeholder="e.g. 105" required></div><div class="form-group"><label>Location</label><select name="location"><option>Kitchen sink</option><option>Bathroom</option><option>Water heater</option><option>Washer hookup</option><option>Toilet</option><option>Dishwasher</option></select></div></div><div class="form-group"><label>Sensor ID</label><input name="sensorId" placeholder="ID printed on the back of the sensor" required></div><div class="form-group"><label>Property</label><select name="property"><option>The Residences at Dallas</option><option>Metropolis LA</option><option>Azure Phoenix</option><option>The Standard Atlanta</option></select></div></form><button class="btn" data-form-submit="form-add-sensor">➕ Add sensor</button><div class="highlight">💡 Compatible sensors are ~$15 on Amazon. Any WiFi moisture sensor works — DripSolve doesn\'t lock you into proprietary hardware.</div>',
+        wide: true
     },
     'add-tenant': {
         icon: '👤',
         title: 'Add tenant contact',
         sub: 'Link a tenant to a unit for alerts',
-        desc: 'Add a tenant\'s name, phone number, and email. When a leak is detected in their unit, they\'ll get an alert too — so they can check under their sink right away. Tenants appreciate the heads-up.',
-        highlight: '📱 Tenants get SMS alerts when water is detected in their unit. They can confirm it\'s handled or request maintenance immediately.'
+        form: '<form id="form-add-tenant"><div class="form-row"><div class="form-group"><label>Unit number</label><input name="unit" placeholder="e.g. 105" required></div><div class="form-group"><label>Name</label><input name="name" placeholder="Tenant name" required></div></div><div class="form-row"><div class="form-group"><label>Phone</label><input name="phone" placeholder="(555) 123-4567" required></div><div class="form-group"><label>Notification</label><select name="notify"><option>Both (SMS & Email)</option><option>SMS only</option><option>Email only</option></select></div></div><div class="form-group"><label>Email</label><input name="email" placeholder="tenant@email.com"></div></form><button class="btn" data-form-submit="form-add-tenant">👤 Add tenant</button><div class="highlight">📱 Tenants get SMS alerts when water is detected in their unit. They can confirm it\'s handled or request maintenance immediately.</div>',
+        wide: true
     },
     'add-log': {
         icon: '📝',
         title: 'Add maintenance log entry',
         sub: 'Record inspections, repairs, battery swaps',
-        desc: 'Keep a running log of everything done at this property. Log battery replacements, inspections, plumbing repairs, and sensor installs. Useful for tracking recurring issues and proving proactive maintenance.',
-        highlight: '📋 Maintenance logs are timestamped and exportable. Great for insurance audits and justifying premium discounts.'
+        form: '<form id="form-add-log"><div class="form-row"><div class="form-group"><label>Date</label><input name="date" type="date" required></div><div class="form-group"><label>Unit</label><input name="unit" placeholder="e.g. 105 or All" required></div></div><div class="form-group"><label>Description</label><input name="desc" placeholder="e.g. Replaced water heater fitting" required></div><div class="form-group"><label>Status</label><select name="status"><option>Done</option><option>Pending</option><option>Scheduled</option></select></div></form><button class="btn" data-form-submit="form-add-log">📝 Add entry</button><div class="highlight">📋 Maintenance logs are timestamped and exportable. Great for insurance audits and justifying premium discounts.</div>',
+        wide: true
     },
     'pause-prop': {
         icon: '⏸️',
@@ -1011,6 +1024,27 @@ const data = {
         sub: 'Property details updated successfully',
         desc: 'Your property information has been updated. Changes are reflected immediately across the dashboard. Any tenant contact changes are live — they\'ll receive alerts at their new number or email.',
         highlight: '💾 Changes saved to your account. Synced across all devices.'
+    },
+    'success-add-sensor': {
+        icon: '✅',
+        title: 'Sensor added',
+        sub: 'Waiting for first connection',
+        desc: 'The sensor will appear in your dashboard as soon as it connects to WiFi and reports its first reading. This usually happens within a few minutes of installation. Make sure the sensor is within range of the building\'s WiFi.',
+        highlight: '📡 Sensor will show as "Offline" until it connects. If it doesn\'t connect within 24 hours, check the batteries and WiFi signal.'
+    },
+    'success-add-tenant': {
+        icon: '✅',
+        title: 'Tenant added',
+        sub: 'They\'ll get alerts for their unit now',
+        desc: 'The tenant will receive a welcome SMS confirming they\'re registered for DripSolve leak alerts in their unit. They\'ll be notified immediately if a sensor detects moisture.',
+        highlight: '📱 Tenants can reply STOP to opt out of SMS alerts at any time.'
+    },
+    'success-add-log': {
+        icon: '✅',
+        title: 'Log entry added',
+        sub: 'Maintenance record saved',
+        desc: 'The entry has been added to the property\'s maintenance log. It\'s timestamped and will appear in monthly reports. Keep this log up to date for insurance purposes.',
+        highlight: '📋 A complete maintenance log demonstrates due diligence and can lower insurance premiums.'
     }
 };
 
@@ -1052,10 +1086,37 @@ function showModal(key) {
     document.getElementById('mIcon').textContent = d.icon;
     document.getElementById('mTitle').textContent = d.title;
     document.getElementById('mSub').textContent = d.sub;
-    document.getElementById('mDesc').textContent = d.desc;
-    document.getElementById('mHighlight').textContent = d.highlight;
+    if (d.form) {
+        document.getElementById('mBody').innerHTML = d.form;
+    } else {
+        document.getElementById('mBody').innerHTML = '<div class="modal-desc">' + d.desc + '</div><div class="highlight">' + d.highlight + '</div>';
+    }
+    const m = document.getElementById('modalContent');
+    m.style.maxWidth = d.wide ? '640px' : '540px';
     document.getElementById('modalOverlay').classList.add('open');
 }
+
+// Form submission handlers
+window.addEventListener('load', function() {
+    document.addEventListener('click', function(e) {
+        const btn = e.target.closest('[data-form-submit]');
+        if (!btn) return;
+        const formId = btn.getAttribute('data-form-submit');
+        const form = document.getElementById(formId);
+        if (!form) return;
+        const inputs = form.querySelectorAll('input, select');
+        let valid = true, vals = {};
+        inputs.forEach(inp => {
+            if (inp.required && !inp.value.trim()) { valid = false; inp.style.borderColor = '#dc2626'; }
+            else { inp.style.borderColor = ''; vals[inp.name || inp.placeholder] = inp.value.trim(); }
+        });
+        if (!valid) return;
+        closeModal();
+        const type = formId.replace('form-', '');
+        const names = {'add-sensor':'Sensor added','add-tenant':'Tenant added','add-log':'Log entry added'};
+        showModal('success-' + type);
+    });
+});
 
 function closeModal(e) {
     if (e && e.target !== e.currentTarget) return;
