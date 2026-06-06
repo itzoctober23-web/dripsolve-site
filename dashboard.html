@@ -487,14 +487,25 @@
         <!-- ====== SENSORS VIEW ====== -->
         <div id="view-sensors" class="view">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
-                <div><span style="font-size:14px;color:#64748b">86 sensors · 84 online · 2 offline</span></div>
+                <div><span style="font-size:14px;color:#64748b"><span id="sensorCount">86</span> sensors · <span id="sensorOnline">84</span> online · <span id="sensorOffline">2</span> offline</span></div>
                 <div class="filter-bar" style="margin-bottom:0">
-                    <select><option>All properties</option><option>The Residences at Dallas</option><option>Metropolis LA</option><option>Azure Phoenix</option><option>The Standard Atlanta</option></select>
-                    <select><option>All status</option><option>Online</option><option>Offline</option></select>
+                    <select id="filterProperty" onchange="filterSensors()">
+                        <option value="all">All properties</option>
+                        <option value="The Residences at Dallas">The Residences at Dallas</option>
+                        <option value="Metropolis LA">Metropolis LA</option>
+                        <option value="Azure Phoenix">Azure Phoenix</option>
+                        <option value="The Standard Atlanta">The Standard Atlanta</option>
+                    </select>
+                    <select id="filterStatus" onchange="filterSensors()">
+                        <option value="all">All status</option>
+                        <option value="Online">Online</option>
+                        <option value="Offline">Offline</option>
+                    </select>
                 </div>
             </div>
 
-            <div class="sensor-item" onclick="showModal('sensor-example')">
+            <div id="sensorList">
+            <div class="sensor-item" onclick="showModal('sensor-example')" data-property="The Residences at Dallas" data-status="Online">
                 <div class="sensor-icon green-bg">📡</div>
                 <div class="sensor-info">
                     <h4>Kitchen sink — Unit 101</h4>
@@ -502,7 +513,7 @@
                 </div>
                 <div class="sensor-status green">● Online</div>
             </div>
-            <div class="sensor-item" onclick="showModal('sensor-example')">
+            <div class="sensor-item" onclick="showModal('sensor-example')" data-property="The Residences at Dallas" data-status="Online">
                 <div class="sensor-icon green-bg">📡</div>
                 <div class="sensor-info">
                     <h4>Bathroom — Unit 101</h4>
@@ -510,7 +521,7 @@
                 </div>
                 <div class="sensor-status green">● Online</div>
             </div>
-            <div class="sensor-item" onclick="showModal('sensor-example')">
+            <div class="sensor-item" onclick="showModal('sensor-example')" data-property="The Residences at Dallas" data-status="Online">
                 <div class="sensor-icon green-bg">📡</div>
                 <div class="sensor-info">
                     <h4>Water heater — Unit 102</h4>
@@ -518,7 +529,7 @@
                 </div>
                 <div class="sensor-status green">● Online</div>
             </div>
-            <div class="sensor-item" onclick="showModal('sensor-example')">
+            <div class="sensor-item" onclick="showModal('sensor-example')" data-property="The Residences at Dallas" data-status="Online">
                 <div class="sensor-icon green-bg">📡</div>
                 <div class="sensor-info">
                     <h4>Washer hookup — Unit 103</h4>
@@ -526,7 +537,71 @@
                 </div>
                 <div class="sensor-status green">● Online</div>
             </div>
-            <div class="sensor-item" onclick="showModal('sensor-example')">
+            <div class="sensor-item" onclick="showModal('sensor-example')" data-property="The Residences at Dallas" data-status="Online">
+                <div class="sensor-icon green-bg">📡</div>
+                <div class="sensor-info">
+                    <h4>Toilet — Unit 104</h4>
+                    <p>The Residences at Dallas</p>
+                </div>
+                <div class="sensor-status green">● Online</div>
+            </div>
+            <div class="sensor-item" onclick="showModal('sensor-example')" data-property="Metropolis LA" data-status="Online">
+                <div class="sensor-icon green-bg">📡</div>
+                <div class="sensor-info">
+                    <h4>Kitchen sink — Unit 201</h4>
+                    <p>Metropolis LA</p>
+                </div>
+                <div class="sensor-status green">● Online</div>
+            </div>
+            <div class="sensor-item" onclick="showModal('sensor-example')" data-property="Metropolis LA" data-status="Online">
+                <div class="sensor-icon green-bg">📡</div>
+                <div class="sensor-info">
+                    <h4>Bathroom — Unit 201</h4>
+                    <p>Metropolis LA</p>
+                </div>
+                <div class="sensor-status green">● Online</div>
+            </div>
+            <div class="sensor-item" onclick="showModal('sensor-example')" data-property="Metropolis LA" data-status="Online">
+                <div class="sensor-icon green-bg">📡</div>
+                <div class="sensor-info">
+                    <h4>Water heater — Unit 202</h4>
+                    <p>Metropolis LA</p>
+                </div>
+                <div class="sensor-status green">● Online</div>
+            </div>
+            <div class="sensor-item" onclick="showModal('sensor-example')" data-property="Metropolis LA" data-status="Online">
+                <div class="sensor-icon green-bg">📡</div>
+                <div class="sensor-info">
+                    <h4>Washer hookup — Unit 203</h4>
+                    <p>Metropolis LA</p>
+                </div>
+                <div class="sensor-status green">● Online</div>
+            </div>
+            <div class="sensor-item" onclick="showModal('sensor-example')" data-property="Metropolis LA" data-status="Online">
+                <div class="sensor-icon green-bg">📡</div>
+                <div class="sensor-info">
+                    <h4>Dishwasher — Unit 204</h4>
+                    <p>Metropolis LA</p>
+                </div>
+                <div class="sensor-status green">● Online</div>
+            </div>
+            <div class="sensor-item" onclick="showModal('sensor-example')" data-property="Azure Phoenix" data-status="Online">
+                <div class="sensor-icon green-bg">📡</div>
+                <div class="sensor-info">
+                    <h4>Kitchen sink — Unit 1</h4>
+                    <p>Azure Phoenix</p>
+                </div>
+                <div class="sensor-status green">● Online</div>
+            </div>
+            <div class="sensor-item" onclick="showModal('sensor-example')" data-property="Azure Phoenix" data-status="Online">
+                <div class="sensor-icon green-bg">📡</div>
+                <div class="sensor-info">
+                    <h4>Water heater — Unit 5</h4>
+                    <p>Azure Phoenix</p>
+                </div>
+                <div class="sensor-status green">● Online</div>
+            </div>
+            <div class="sensor-item" onclick="showModal('sensor-example')" data-property="Azure Phoenix" data-status="Offline">
                 <div class="sensor-icon yellow-bg">📡</div>
                 <div class="sensor-info">
                     <h4>Bathroom — Unit 12</h4>
@@ -534,13 +609,47 @@
                 </div>
                 <div class="sensor-status yellow">● Offline (battery)</div>
             </div>
-            <div class="sensor-item" onclick="showModal('sensor-example')">
+            <div class="sensor-item" onclick="showModal('sensor-example')" data-property="Azure Phoenix" data-status="Online">
+                <div class="sensor-icon green-bg">📡</div>
+                <div class="sensor-info">
+                    <h4>Toilet — Unit 8</h4>
+                    <p>Azure Phoenix</p>
+                </div>
+                <div class="sensor-status green">● Online</div>
+            </div>
+            <div class="sensor-item" onclick="showModal('sensor-example')" data-property="The Standard Atlanta" data-status="Online">
                 <div class="sensor-icon green-bg">📡</div>
                 <div class="sensor-info">
                     <h4>Kitchen sink — Unit 204</h4>
                     <p>The Standard Atlanta</p>
                 </div>
                 <div class="sensor-status green">● Online</div>
+            </div>
+            <div class="sensor-item" onclick="showModal('sensor-example')" data-property="The Standard Atlanta" data-status="Online">
+                <div class="sensor-icon green-bg">📡</div>
+                <div class="sensor-info">
+                    <h4>Bathroom — Unit 205</h4>
+                    <p>The Standard Atlanta</p>
+                </div>
+                <div class="sensor-status green">● Online</div>
+            </div>
+            <div class="sensor-item" onclick="showModal('sensor-example')" data-property="The Standard Atlanta" data-status="Online">
+                <div class="sensor-icon green-bg">📡</div>
+                <div class="sensor-info">
+                    <h4>Water heater — Unit 206</h4>
+                    <p>The Standard Atlanta</p>
+                </div>
+                <div class="sensor-status green">● Online</div>
+            </div>
+            <div class="sensor-item" onclick="showModal('sensor-example')" data-property="The Standard Atlanta" data-status="Online">
+                <div class="sensor-icon green-bg">📡</div>
+                <div class="sensor-info">
+                    <h4>Washer hookup — Unit 207</h4>
+                    <p>The Standard Atlanta</p>
+                </div>
+                <div class="sensor-status green">● Online</div>
+            </div>
+            <div id="sensorEmpty" style="display:none;text-align:center;padding:40px;color:#64748b;font-size:14px">No sensors match your filter.</div>
             </div>
         </div>
 
@@ -549,41 +658,41 @@
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
                 <div><span style="font-size:14px;color:#64748b">Showing last 30 days</span></div>
                 <div class="filter-bar" style="margin-bottom:0">
-                    <select><option>All types</option><option>Critical</option><option>Warning</option><option>Resolved</option></select>
+                    <select id="filterAlertType" onchange="filterAlerts()"><option value="all">All types</option><option value="Critical">Critical</option><option value="Warning">Warning</option><option value="Resolved">Resolved</option></select>
                 </div>
             </div>
 
-            <table>
+            <table id="alertTable">
                 <tr><th>Event</th><th>Property</th><th>Unit</th><th>Status</th><th>Time</th></tr>
-                <tr onclick="showModal('alert-active')" style="cursor:pointer">
+                <tr onclick="showModal('alert-active')" style="cursor:pointer" data-alert-type="Critical">
                     <td><span class="tag new">Water detected</span></td>
                     <td>The Standard Atlanta</td>
                     <td>Unit 204 · Kitchen sink</td>
                     <td><span class="tag new">Active</span></td>
                     <td>4 min ago</td>
                 </tr>
-                <tr onclick="showModal('alert-offline')" style="cursor:pointer">
+                <tr onclick="showModal('alert-offline')" style="cursor:pointer" data-alert-type="Warning">
                     <td><span class="tag new">Sensor offline</span></td>
                     <td>Azure Phoenix</td>
                     <td>Unit 12 · Bathroom</td>
                     <td><span class="tag new">Warning</span></td>
                     <td>3 hrs ago</td>
                 </tr>
-                <tr onclick="showModal('alert-resolved1')" style="cursor:pointer">
+                <tr onclick="showModal('alert-resolved1')" style="cursor:pointer" data-alert-type="Resolved">
                     <td>✅ Leak resolved</td>
                     <td>Metropolis LA</td>
                     <td>Unit 408 · Washer connection</td>
                     <td><span class="tag resolved">Resolved</span></td>
                     <td>Yesterday</td>
                 </tr>
-                <tr onclick="showModal('alert-resolved2')" style="cursor:pointer">
+                <tr onclick="showModal('alert-resolved2')" style="cursor:pointer" data-alert-type="Resolved">
                     <td>✅ Leak resolved</td>
                     <td>The Residences at Dallas</td>
                     <td>Unit 7 · Water heater</td>
                     <td><span class="tag resolved">Resolved</span></td>
                     <td>3 days ago</td>
                 </tr>
-                <tr onclick="showModal('alert-resolved2')" style="cursor:pointer">
+                <tr onclick="showModal('alert-resolved2')" style="cursor:pointer" data-alert-type="Resolved">
                     <td>✅ Leak resolved</td>
                     <td>The Residences at Dallas</td>
                     <td>Unit 15 · Kitchen sink</td>
@@ -591,6 +700,7 @@
                     <td>6 days ago</td>
                 </tr>
             </table>
+            <div id="alertEmpty" style="display:none;text-align:center;padding:40px;color:#64748b;font-size:14px">No alerts match your filter.</div>
         </div>
 
         <!-- ====== REPORTS VIEW ====== -->
@@ -903,6 +1013,38 @@ const data = {
         highlight: '💾 Changes saved to your account. Synced across all devices.'
     }
 };
+
+function filterSensors() {
+    const prop = document.getElementById('filterProperty').value;
+    const status = document.getElementById('filterStatus').value;
+    let visible = 0, online = 0, offline = 0;
+    document.querySelectorAll('#sensorList .sensor-item').forEach(el => {
+        const matchProp = prop === 'all' || el.dataset.property === prop;
+        const matchStatus = status === 'all' || el.dataset.status === status;
+        const show = matchProp && matchStatus;
+        el.style.display = show ? '' : 'none';
+        if (show) {
+            visible++;
+            if (el.dataset.status === 'Online') online++;
+            else offline++;
+        }
+    });
+    document.getElementById('sensorEmpty').style.display = visible === 0 ? 'block' : 'none';
+    document.getElementById('sensorCount').textContent = visible;
+    document.getElementById('sensorOnline').textContent = online;
+    document.getElementById('sensorOffline').textContent = offline;
+}
+
+function filterAlerts() {
+    const type = document.getElementById('filterAlertType').value;
+    let visible = 0;
+    document.querySelectorAll('#alertTable tr[data-alert-type]').forEach(el => {
+        const match = type === 'all' || el.dataset.alertType === type;
+        el.style.display = match ? '' : 'none';
+        if (match) visible++;
+    });
+    document.getElementById('alertEmpty').style.display = visible === 0 ? 'block' : 'none';
+}
 
 function showModal(key) {
     const d = data[key];
