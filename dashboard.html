@@ -196,7 +196,7 @@
         <a href="#" onclick="switchView('reports')" data-view="reports">📋 <span>Reports</span></a>
         <a href="#" onclick="switchView('settings')" data-view="settings">⚙️ <span>Settings</span></a>
         <div class="spacer"></div>
-        <div class="user">
+        <div class="user" style="cursor:pointer" onclick="showModal('profile')">
             <div class="avatar">JM</div>
             <div>
                 <div style="font-size: 14px; font-weight: 600;">Jane Miller</div>
@@ -212,8 +212,8 @@
                 <div class="date" id="pageDate">Last updated: June 6, 2026 — 2:48 PM CDT</div>
             </div>
             <div class="topbar-right">
-                <div style="position: relative;">🔔 <span class="badge">2</span></div>
-                <div>👤</div>
+                <div style="position: relative;cursor:pointer" onclick="switchView('alerts')" title="View alerts">🔔 <span class="badge">2</span></div>
+                <div style="cursor:pointer" onclick="showModal('profile')" title="Your profile">👤</div>
             </div>
         </div>
 
@@ -1045,6 +1045,13 @@ const data = {
         sub: 'Maintenance record saved',
         desc: 'The entry has been added to the property\'s maintenance log. It\'s timestamped and will appear in monthly reports. Keep this log up to date for insurance purposes.',
         highlight: '📋 A complete maintenance log demonstrates due diligence and can lower insurance premiums.'
+    },
+    'profile': {
+        icon: '👤',
+        title: 'Jane Miller',
+        sub: 'Portfolio owner · jane@dripsolve.com',
+        desc: 'You manage 4 apartment buildings with 86 sensors deployed across your portfolio. Pro plan · $99/mo. Member since March 2026.',
+        highlight: '🏢 4 properties · 86 sensors · 14 leaks prevented · $0 in water damage claims since joining.'
     }
 };
 
