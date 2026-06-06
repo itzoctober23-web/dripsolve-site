@@ -115,6 +115,40 @@
         .filter-bar input { border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 14px; font-size: 14px; flex: 1; min-width: 160px; }
         .filter-bar select { border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 14px; font-size: 14px; background: white; }
 
+        /* Property detail panel */
+        .prop-detail { display: none; }
+        .prop-detail.open { display: block; }
+        .prop-grid-wrap { display: block; }
+        .prop-grid-wrap.hidden { display: none; }
+        .detail-header { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
+        .detail-header .back { cursor: pointer; color: #64748b; font-size: 14px; }
+        .detail-header .back:hover { color: #0f172a; }
+        .detail-header h2 { font-size: 20px; font-weight: 700; flex: 1; }
+        .detail-header .status-badge { font-size: 12px; padding: 4px 12px; border-radius: 100px; font-weight: 600; }
+        .detail-header .status-badge.green { background: #dcfce7; color: #166534; }
+        .detail-header .status-badge.yellow { background: #fef9c3; color: #854d0e; }
+        .detail-header .status-badge.red { background: #fee2e2; color: #991b1b; }
+
+        .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        .detail-card { background: white; border-radius: 12px; padding: 24px; }
+        .detail-card h3 { font-size: 14px; font-weight: 600; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
+        .detail-card h3 span { font-size: 12px; font-weight: 400; color: #0d9488; cursor: pointer; }
+
+        .form-group { margin-bottom: 14px; }
+        .form-group label { display: block; font-size: 12px; font-weight: 600; color: #64748b; margin-bottom: 4px; }
+        .form-group input { width: 100%; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 14px; font-size: 14px; }
+        .form-group input:focus { outline: none; border-color: #0d9488; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+        .detail-table { width: 100%; font-size: 13px; }
+        .detail-table th { font-size: 11px; padding: 8px 12px; }
+        .detail-table td { padding: 10px 12px; font-size: 13px; }
+        .detail-table td input, .detail-table td select { font-size: 12px; padding: 4px 8px; border: 1px solid #e2e8f0; border-radius: 4px; width: 100%; }
+
+        .detail-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 24px; padding-top: 24px; border-top: 1px solid #e2e8f0; }
+        .btn-danger { background: white; border: 1px solid #dc2626; color: #dc2626; }
+        .btn-danger:hover { background: #fee2e2; }
+
         /* Modal */
         .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 1000; align-items: center; justify-content: center; }
         .overlay.open { display: flex; }
@@ -277,7 +311,7 @@
                 <button class="btn" onclick="showModal('add-prop')">+ Add property</button>
             </div>
 
-            <div class="prop-grid">
+            <div class="prop-grid-wrap"><div class="prop-grid">
                 <div class="prop-card" onclick="showModal('prop-dallas')">
                     <div class="prop-head">
                         <div>
@@ -295,7 +329,7 @@
                     <div style="font-size:12px;color:#64748b">Sensor health: 100%</div>
                     <div class="prop-actions">
                         <button class="btn btn-outline" style="flex:1" onclick="event.stopPropagation();showModal('prop-dallas')">Details</button>
-                        <button class="btn btn-outline" style="flex:1" onclick="event.stopPropagation();showModal('manage-prop')">Manage</button>
+                        <button class="btn" style="flex:1" onclick="event.stopPropagation();showPropertyDetail('prop-dallas')">Manage</button>
                     </div>
                 </div>
 
@@ -316,7 +350,7 @@
                     <div style="font-size:12px;color:#64748b">Sensor health: 100%</div>
                     <div class="prop-actions">
                         <button class="btn btn-outline" style="flex:1" onclick="event.stopPropagation();showModal('prop-la')">Details</button>
-                        <button class="btn btn-outline" style="flex:1" onclick="event.stopPropagation();showModal('manage-prop')">Manage</button>
+                        <button class="btn" style="flex:1" onclick="event.stopPropagation();showPropertyDetail('prop-la')">Manage</button>
                     </div>
                 </div>
 
@@ -337,7 +371,7 @@
                     <div style="font-size:12px;color:#64748b">Sensor health: 94%</div>
                     <div class="prop-actions">
                         <button class="btn btn-outline" style="flex:1" onclick="event.stopPropagation();showModal('prop-phoenix')">Details</button>
-                        <button class="btn btn-outline" style="flex:1" onclick="event.stopPropagation();showModal('manage-prop')">Manage</button>
+                        <button class="btn" style="flex:1" onclick="event.stopPropagation();showPropertyDetail('prop-phoenix')">Manage</button>
                     </div>
                 </div>
 
@@ -358,8 +392,94 @@
                     <div style="font-size:12px;color:#64748b">Sensor health: 92%</div>
                     <div class="prop-actions">
                         <button class="btn btn-outline" style="flex:1" onclick="event.stopPropagation();showModal('prop-atlanta')">Details</button>
-                        <button class="btn btn-outline" style="flex:1" onclick="event.stopPropagation();showModal('manage-prop')">Manage</button>
+                        <button class="btn" style="flex:1" onclick="event.stopPropagation();showPropertyDetail('prop-atlanta')">Manage</button>
                     </div>
+                </div>
+            </div></div>
+
+            <!-- Property Detail Panel (shown when Manage is clicked) -->
+            <div class="prop-detail" id="propDetail">
+                <div class="detail-header">
+                    <span class="back" onclick="closePropertyDetail()">← Back to properties</span>
+                    <h2 id="pdTitle">Property name</h2>
+                    <span class="status-badge green" id="pdStatusBadge">All good</span>
+                </div>
+
+                <div class="detail-grid">
+                    <div class="detail-card">
+                        <h3>Property details <span onclick="savePropertyDetail()">💾 Save</span></h3>
+                        <div class="form-group">
+                            <label>Building name</label>
+                            <input id="pdName" value="The Residences at Dallas">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Address</label>
+                                <input id="pdAddress" value="123 Main St">
+                            </div>
+                            <div class="form-group">
+                                <label>Unit</label>
+                                <input id="pdUnit" value="">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>City</label>
+                                <input id="pdCity" value="Dallas">
+                            </div>
+                            <div class="form-group">
+                                <label>State</label>
+                                <input id="pdState" value="TX">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Total units</label>
+                                <input id="pdUnits" type="number" value="24">
+                            </div>
+                            <div class="form-group">
+                                <label>Sensors deployed</label>
+                                <input id="pdSensors" type="number" value="24" disabled style="background:#f8fafc;color:#64748b">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="detail-card">
+                        <h3>Sensor overview <span onclick="showModal('add-sensor')">+ Add sensor</span></h3>
+                        <table class="detail-table" id="pdSensorTable">
+                            <tr><th>Unit</th><th>Location</th><th>Status</th><th>Battery</th></tr>
+                            <tr><td>101</td><td>Kitchen sink</td><td><span class="dot green"></span> Online</td><td>82%</td></tr>
+                            <tr><td>101</td><td>Bathroom</td><td><span class="dot green"></span> Online</td><td>76%</td></tr>
+                            <tr><td>102</td><td>Water heater</td><td><span class="dot green"></span> Online</td><td>91%</td></tr>
+                            <tr><td>103</td><td>Washer hookup</td><td><span class="dot green"></span> Online</td><td>64%</td></tr>
+                        </table>
+                    </div>
+
+                    <div class="detail-card">
+                        <h3>Tenant contacts <span onclick="showModal('add-tenant')">+ Add tenant</span></h3>
+                        <table class="detail-table" id="pdTenantTable">
+                            <tr><th>Unit</th><th>Name</th><th>Phone</th><th>Notify</th></tr>
+                            <tr><td><input value="101"></td><td><input value="Sarah Johnson"></td><td><input value="(214) 555-0101"></td><td><select><option>SMS</option><option>Email</option><option selected>Both</option></select></td></tr>
+                            <tr><td><input value="102"></td><td><input value="Mike Torres"></td><td><input value="(214) 555-0102"></td><td><select><option>SMS</option><option>Email</option><option selected>Both</option></select></td></tr>
+                            <tr><td><input value="103"></td><td><input value="Amy Chen"></td><td><input value="(214) 555-0103"></td><td><select><option>SMS</option><option selected>Email</option><option>Both</option></select></td></tr>
+                        </table>
+                    </div>
+
+                    <div class="detail-card">
+                        <h3>Maintenance log <span onclick="showModal('add-log')">+ Add entry</span></h3>
+                        <table class="detail-table">
+                            <tr><th>Date</th><th>Issue</th><th>Unit</th><th>Status</th></tr>
+                            <tr><td>May 28</td><td>Water heater fitting replaced</td><td>7</td><td><span class="tag resolved">Done</span></td></tr>
+                            <tr><td>May 15</td><td>Sensor battery replaced</td><td>12</td><td><span class="tag resolved">Done</span></td></tr>
+                            <tr><td>Apr 30</td><td>Routine inspection</td><td>All</td><td><span class="tag resolved">Done</span></td></tr>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="detail-actions">
+                    <button class="btn" onclick="savePropertyDetail()">💾 Save changes</button>
+                    <button class="btn btn-outline" onclick="showModal('pause-prop')">⏸️ Pause monitoring</button>
+                    <button class="btn btn-outline btn-danger" onclick="showModal('remove-prop')">🗑️ Remove property</button>
                 </div>
             </div>
         </div>
@@ -548,6 +668,64 @@ function switchView(view) {
     document.getElementById('mockLabel').style.display = view === 'dashboard' ? 'block' : 'none';
 }
 
+// Property detail data
+const propData = {
+    'prop-dallas': { name:'The Residences at Dallas', address:'123 Main St', unit:'', city:'Dallas', state:'TX', units:24, sensors:24, status:'green', statusLabel:'All good', color:'#22c55e' },
+    'prop-la': { name:'Metropolis LA', address:'456 Sunset Blvd', unit:'', city:'Los Angeles', state:'CA', units:32, sensors:32, status:'green', statusLabel:'All good', color:'#22c55e' },
+    'prop-phoenix': { name:'Azure Phoenix', address:'789 Desert Dr', unit:'', city:'Phoenix', state:'AZ', units:18, sensors:18, status:'yellow', statusLabel:'1 offline', color:'#eab308' },
+    'prop-atlanta': { name:'The Standard Atlanta', address:'321 Peachtree St', unit:'', city:'Atlanta', state:'GA', units:12, sensors:12, status:'red', statusLabel:'Active alert', color:'#dc2626' }
+};
+
+let currentProperty = null;
+
+function showPropertyDetail(key) {
+    const p = propData[key];
+    if (!p) return;
+    currentProperty = key;
+    document.getElementById('pdTitle').textContent = p.name;
+    const badge = document.getElementById('pdStatusBadge');
+    badge.textContent = p.statusLabel;
+    badge.className = 'status-badge ' + p.status;
+    document.getElementById('pdName').value = p.name;
+    document.getElementById('pdAddress').value = p.address;
+    document.getElementById('pdUnit').value = p.unit;
+    document.getElementById('pdCity').value = p.city;
+    document.getElementById('pdState').value = p.state;
+    document.getElementById('pdUnits').value = p.units;
+    document.getElementById('pdSensors').value = p.sensors;
+    document.querySelector('.prop-grid-wrap').classList.add('hidden');
+    document.getElementById('propDetail').classList.add('open');
+}
+
+function closePropertyDetail() {
+    document.getElementById('propDetail').classList.remove('open');
+    document.querySelector('.prop-grid-wrap').classList.remove('hidden');
+    currentProperty = null;
+}
+
+function savePropertyDetail() {
+    const p = propData[currentProperty];
+    if (!p) return;
+    const oldName = p.name;
+    p.name = document.getElementById('pdName').value;
+    p.address = document.getElementById('pdAddress').value;
+    p.unit = document.getElementById('pdUnit').value;
+    p.city = document.getElementById('pdCity').value;
+    p.state = document.getElementById('pdState').value;
+    p.units = parseInt(document.getElementById('pdUnits').value) || p.units;
+    const titleEl = document.getElementById('pdTitle');
+    titleEl.textContent = p.name;
+    document.querySelectorAll('.prop-card').forEach(card => {
+        const h3 = card.querySelector('h3');
+        if (h3 && h3.textContent.includes(oldName)) {
+            h3.textContent = p.name;
+            const meta = card.querySelector('.prop-meta');
+            if (meta) meta.children[0].textContent = '🏠 ' + p.units + ' units';
+        }
+    });
+    showModal('saved');
+}
+
 const data = {
     'properties': {
         icon: '🏢',
@@ -681,6 +859,48 @@ const data = {
         sub: 'Pro plan · $99/mo',
         desc: 'Monthly billing via credit card. No contracts — cancel anytime. You keep your sensors and can still use them with other platforms if you leave. Invoices available for download. Annual billing available at 2 months off ($990/yr).',
         highlight: '💰 Cancel anytime. No early termination fees. Your data is exportable on cancellation.'
+    },
+    'add-sensor': {
+        icon: '📡',
+        title: 'Add a sensor',
+        sub: 'Assign a sensor to a unit',
+        desc: 'Enter the unit number, location (kitchen sink, bathroom, water heater, washer hookup), and sensor ID. Each sensor has a unique ID printed on the back. The sensor will appear in the dashboard once it connects to WiFi.',
+        highlight: '💡 Compatible sensors are ~$15 on Amazon. Any WiFi moisture sensor works — DripSolve doesn\'t lock you into proprietary hardware.'
+    },
+    'add-tenant': {
+        icon: '👤',
+        title: 'Add tenant contact',
+        sub: 'Link a tenant to a unit for alerts',
+        desc: 'Add a tenant\'s name, phone number, and email. When a leak is detected in their unit, they\'ll get an alert too — so they can check under their sink right away. Tenants appreciate the heads-up.',
+        highlight: '📱 Tenants get SMS alerts when water is detected in their unit. They can confirm it\'s handled or request maintenance immediately.'
+    },
+    'add-log': {
+        icon: '📝',
+        title: 'Add maintenance log entry',
+        sub: 'Record inspections, repairs, battery swaps',
+        desc: 'Keep a running log of everything done at this property. Log battery replacements, inspections, plumbing repairs, and sensor installs. Useful for tracking recurring issues and proving proactive maintenance.',
+        highlight: '📋 Maintenance logs are timestamped and exportable. Great for insurance audits and justifying premium discounts.'
+    },
+    'pause-prop': {
+        icon: '⏸️',
+        title: 'Pause monitoring',
+        sub: 'Temporarily disable alerts for this property',
+        desc: 'Pausing stops all alerts and notifications for this property. Sensors will still report their status, but you won\'t get leak alerts. Use this if the building is vacant during renovations or between tenants.',
+        highlight: '⚠️ Pausing means you WON\'T be notified of leaks. Only pause if the water is shut off to the building. You can resume anytime.'
+    },
+    'remove-prop': {
+        icon: '🗑️',
+        title: 'Remove property',
+        sub: 'Permanently remove this building from your account',
+        desc: 'This removes the property and all its sensor data from your dashboard. Sensor history will be deleted within 30 days. You can re-add the property later if needed, but history won\'t be restored.',
+        highlight: '⚠️ This is permanent. Download any reports or logs before removing. Sensors in the units will keep working but won\'t report to DripSolve.'
+    },
+    'saved': {
+        icon: '✅',
+        title: 'Changes saved',
+        sub: 'Property details updated successfully',
+        desc: 'Your property information has been updated. Changes are reflected immediately across the dashboard. Any tenant contact changes are live — they\'ll receive alerts at their new number or email.',
+        highlight: '💾 Changes saved to your account. Synced across all devices.'
     }
 };
 
