@@ -56,7 +56,9 @@
         .stat .num { font-size: 32px; font-weight: 800; color: #0d9488; }
         .stat .label { font-size: 14px; color: #64748b; margin-top: 4px; }
 
-        .pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 48px; }
+        .pricing-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 48px; }
+        .promo-banner { background: linear-gradient(135deg, #fef3c7, #fde68a); border-radius: 12px; padding: 16px 24px; text-align: center; font-size: 15px; font-weight: 600; color: #92400e; margin-bottom: -24px; position: relative; z-index: 1; }
+        .promo-banner span { color: #dc2626; }
         .plan { border: 1px solid #e2e8f0; border-radius: 16px; padding: 40px 32px; display: flex; flex-direction: column; }
         .plan.popular { border: 2px solid #0d9488; position: relative; }
         .plan.popular::before { content: "Most popular"; position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: #0d9488; color: white; font-size: 12px; font-weight: 600; padding: 4px 16px; border-radius: 100px; }
@@ -88,6 +90,7 @@
         @media (max-width: 768px) {
             .hero h1 { font-size: 36px; }
             .grid-3, .pricing-grid, .steps { grid-template-columns: 1fr; }
+            .pricing-grid { grid-template-columns: 1fr; }
             .problem-grid { grid-template-columns: 1fr; }
             .nav-links { display: none; }
         }
@@ -223,6 +226,8 @@
             <span class="section-label">Pricing</span>
             <h2>Pay for the software. Sensors are yours.</h2>
             <p>No contracts. No hidden fees. Cancel anytime.</p>
+            <div class="promo-banner">🚀 <span>Launch special:</span> First 3 months half off on any plan. No code needed — just mention it.</div>
+
             <div class="pricing-grid">
                 <div class="plan">
                     <div class="name">Starter</div>
@@ -232,7 +237,7 @@
                         <li>Up to 25 sensors</li>
                         <li>1 property</li>
                         <li>Real-time alerts (text + email)</li>
-                        <li>Dashboard access</li>
+                        <li>Full dashboard access</li>
                         <li>Email support</li>
                     </ul>
                     <a href="mailto:hello@dripsolve.com?subject=Starter%20Plan" class="btn btn-outline" style="display: block; text-align: center; text-decoration: none;">Start trial</a>
@@ -245,11 +250,25 @@
                         <li>Up to 100 sensors</li>
                         <li>Up to 5 properties</li>
                         <li>Real-time alerts (text + email + call)</li>
-                        <li>Multi-property dashboard</li>
+                        <li>SMS tenant notifications</li>
                         <li>Monthly reports</li>
                         <li>Priority support</li>
                     </ul>
                     <a href="mailto:hello@dripsolve.com?subject=Professional%20Plan" class="btn btn-primary" style="display: block; text-align: center; text-decoration: none;">Start trial</a>
+                </div>
+                <div class="plan">
+                    <div class="name">Portfolio</div>
+                    <div class="desc">For larger operations</div>
+                    <div class="price">$199<span>/mo</span></div>
+                    <ul>
+                        <li>Up to 500 sensors</li>
+                        <li>Up to 25 properties</li>
+                        <li>API access</li>
+                        <li>Custom reports</li>
+                        <li>Bulk sensor management</li>
+                        <li>Dedicated support</li>
+                    </ul>
+                    <a href="mailto:hello@dripsolve.com?subject=Portfolio%20Plan" class="btn btn-outline" style="display: block; text-align: center; text-decoration: none;">Start trial</a>
                 </div>
                 <div class="plan">
                     <div class="name">Enterprise</div>
@@ -258,10 +277,10 @@
                     <ul>
                         <li>Unlimited sensors</li>
                         <li>Unlimited properties</li>
-                        <li>Everything in Professional</li>
-                        <li>API access</li>
+                        <li>Everything in Portfolio</li>
+                        <li>White-label option</li>
                         <li>Custom integrations</li>
-                        <li>Dedicated support</li>
+                        <li>SLA guarantee</li>
                     </ul>
                     <a href="mailto:hello@dripsolve.com?subject=Enterprise%20Plan" class="btn btn-outline" style="display: block; text-align: center; text-decoration: none;">Contact us</a>
                 </div>
