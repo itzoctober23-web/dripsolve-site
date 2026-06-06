@@ -748,27 +748,28 @@
                     <div style="font-size:13px;font-weight:600;color:#64748b;margin-bottom:4px">Email notifications</div>
                     <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid #f1f5f9">
                         <div><div style="font-size:14px;font-weight:500">Critical alerts</div><div style="font-size:12px;color:#64748b">Push and email when water is detected</div></div>
-                        <div class="toggle on" onclick="this.classList.toggle('on');this.classList.toggle('off')"><div class="knob"></div></div>
+                        <div class="toggle on" onclick="toggleSetting(this,'criticalAlerts')"><div class="knob"></div></div>
                     </div>
                     <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid #f1f5f9">
                         <div><div style="font-size:14px;font-weight:500">Weekly summary</div><div style="font-size:12px;color:#64748b">Every Monday morning</div></div>
-                        <div class="toggle on" onclick="this.classList.toggle('on');this.classList.toggle('off')"><div class="knob"></div></div>
+                        <div class="toggle on" onclick="toggleSetting(this,'weeklySummary')"><div class="knob"></div></div>
                     </div>
                     <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid #f1f5f9">
                         <div><div style="font-size:14px;font-weight:500">Sensor offline alerts</div><div style="font-size:12px;color:#64748b">When a sensor battery dies</div></div>
-                        <div class="toggle off" onclick="this.classList.toggle('on');this.classList.toggle('off')"><div class="knob"></div></div>
+                        <div class="toggle off" onclick="toggleSetting(this,'offlineAlerts')"><div class="knob"></div></div>
                     </div>
                 </div>
 
                 <div style="margin-bottom:20px">
                     <div style="font-size:13px;font-weight:600;color:#64748b;margin-bottom:8px">Subscription</div>
-                    <div style="background:#f0fdfa;padding:16px;border-radius:8px;display:flex;justify-content:space-between;align-items:center">
+                    <div style="background:#f0fdfa;padding:16px;border-radius:8px;display:flex;justify-content:space-between;align-items-center">
                         <div><div style="font-weight:600">Pro plan</div><div style="font-size:13px;color:#64748b">$99/mo · 100 sensors · 5 properties</div></div>
-                        <button class="btn btn-outline" style="font-size:13px;padding:6px 14px">Manage</button>
+                        <button class="btn btn-outline" style="font-size:13px;padding:6px 14px" onclick="showModal('manage-plan')">Manage</button>
                     </div>
                 </div>
 
                 <button class="btn btn-outline" style="width:100%" onclick="showModal('settings-billing')">💳 Billing & payment</button>
+                <div style="margin-top:12px;font-size:12px;color:#94a3b8;text-align:center">Demo account — no real billing data. All changes are saved locally.</div>
             </div>
         </div>
 
@@ -905,6 +906,21 @@ const Store = {
             { id:'a4', propertyId:'dallas', unit:'7', location:'Water heater', event:'Leak resolved', type:'Resolved', status:'Resolved', time:'3 days ago' }
         ] };
         this.save(seed);
+    },
+
+    getSettings() {
+        const db = this.get();
+        if (!db.settings) {
+            db.settings = { criticalAlerts: true, weeklySummary: true, offlineAlerts: false, plan: 'pro' };
+            this.save(db);
+        }
+        return db.settings;
+    },
+
+    saveSettings(settings) {
+        const db = this.get();
+        db.settings = settings;
+        this.save(db);
     },
 
     get() { return JSON.parse(localStorage.getItem(this.key) || '{}'); },
@@ -1361,6 +1377,13 @@ const data = {
         desc: 'Monthly billing via credit card. No contracts — cancel anytime. You keep your sensors and can still use them with other platforms if you leave. Invoices available for download. Annual billing available at 2 months off ($990/yr).',
         highlight: '💰 Cancel anytime. No early termination fees. Your data is exportable on cancellation.'
     },
+    'manage-plan': {
+        icon: '📋',
+        title: 'Manage plan',
+        sub: 'Current: Pro · $99/mo',
+        form: '<div style="margin-bottom:8px;font-size:13px;color:#64748b">Switch to a different plan:</div><div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px"><button class="btn btn-outline" style="text-align:left;padding:12px" onclick="switchPlan(\'starter\')">🟢 Starter · $49/mo · 25 sensors · 1 property</button><button class="btn btn-outline" style="text-align:left;padding:12px;border-color:#0d9488;background:#f0fdfa" onclick="switchPlan(\'pro\')">🟢 Pro · $99/mo · 100 sensors · 5 properties <span style="font-size:11px;color:#0d9488">Current</span></button><button class="btn btn-outline" style="text-align:left;padding:12px" onclick="switchPlan(\'portfolio\')">🟢 Portfolio · $199/mo · 500 sensors · 25 properties</button><button class="btn btn-outline" style="text-align:left;padding:12px" onclick="switchPlan(\'enterprise\')">🔵 Enterprise · Custom · Unlimited</button></div><div class="highlight" id="planConfirm" style="display:none">✅ Plan updated. Changes reflected on next billing cycle.</div><button class="btn btn-primary" onclick="showModal(\'settings-billing\')">💳 View billing details</button>',
+        wide: true
+    },
     'add-sensor': {
         icon: '📡',
         title: 'Add a sensor',
@@ -1522,6 +1545,36 @@ window.addEventListener('load', function() {
         const type = formId.replace('form-', '');
         const names = {'add-sensor':'Sensor added','add-tenant':'Tenant added','add-log':'Log entry added'};
         showModal('success-' + type);
+    });
+});
+
+// Settings
+function toggleSetting(el, key) {
+    const settings = Store.getSettings();
+    settings[key] = !settings[key];
+    Store.saveSettings(settings);
+    el.classList.toggle('on');
+    el.classList.toggle('off');
+}
+
+function switchPlan(plan) {
+    const labels = { starter:'Starter · $49/mo', pro:'Pro · $99/mo', portfolio:'Portfolio · $199/mo', enterprise:'Enterprise · Custom' };
+    const settings = Store.getSettings();
+    settings.plan = plan;
+    Store.saveSettings(settings);
+    document.getElementById('planConfirm').style.display = 'block';
+    document.getElementById('planConfirm').textContent = '✅ Switched to ' + labels[plan];
+}
+
+// Restore settings on page load
+window.addEventListener('DOMContentLoaded', function() {
+    const settings = Store.getSettings();
+    const toggles = document.querySelectorAll('.toggle');
+    const keys = ['criticalAlerts','weeklySummary','offlineAlerts'];
+    toggles.forEach((t, i) => {
+        const on = settings[keys[i]];
+        if (on) { t.classList.add('on'); t.classList.remove('off'); }
+        else { t.classList.add('off'); t.classList.remove('on'); }
     });
 });
 

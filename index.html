@@ -87,7 +87,17 @@
 
         footer { padding: 48px 0; text-align: center; color: #94a3b8; font-size: 14px; border-top: 1px solid #e2e8f0; }
 
-        @media (max-width: 768px) {
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 1000; align-items: center; justify-content: center; }
+        .modal-overlay.open { display: flex; }
+        .modal-box { background: white; border-radius: 16px; max-width: 480px; width: 90%; padding: 40px; position: relative; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
+        .modal-box .close { position: absolute; top: 16px; right: 16px; background: none; border: none; font-size: 20px; cursor: pointer; color: #94a3b8; }
+        .modal-box h3 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+        .modal-box .sub { font-size: 14px; color: #64748b; margin-bottom: 24px; }
+        .modal-box .form-group { margin-bottom: 16px; }
+        .modal-box .form-group label { display: block; font-size: 12px; font-weight: 600; color: #64748b; margin-bottom: 4px; }
+        .modal-box .form-group input, .modal-box .form-group select { width: 100%; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px; font-size: 14px; }
+        .modal-box .form-group input:focus, .modal-box .form-group select:focus { outline: none; border-color: #0d9488; }
+        .modal-box .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
             .hero h1 { font-size: 36px; }
             .grid-3, .pricing-grid, .steps { grid-template-columns: 1fr; }
             .pricing-grid { grid-template-columns: 1fr; }
@@ -111,7 +121,7 @@
             <a href="#features">Features</a>
             <a href="#pricing">Pricing</a>
             <a href="#faq">FAQ</a>
-            <a href="mailto:hello@dripsolve.com" class="btn btn-primary" style="padding: 10px 24px; font-size: 14px;">Start trial</a>
+            <a href="mailto:hello@dripsolve.com" class="btn btn-primary" style="padding: 10px 24px; font-size: 14px;">Contact us</a>
         </div>
     </nav>
 
@@ -120,7 +130,7 @@
             <div class="hero-badge">Software-only. No hardware needed.</div>
             <h1>Know the second a leak starts.<br>From your <span>dashboard</span>.</h1>
             <p>DripSolve is a software platform that connects to wireless sensors and alerts you instantly when water is detected. Buy sensors online, set up in minutes, manage everything from one dashboard.</p>
-            <a href="mailto:hello@dripsolve.com" class="btn btn-primary">Start free trial</a>
+            <a href="#" class="btn btn-primary" data-trial="hero">Start free trial</a>
             <a href="#how" class="btn btn-outline">How it works</a>
         </div>
     </div>
@@ -139,7 +149,7 @@
                 <div class="step">
                     <div class="step-num">2</div>
                     <h3>Connect to DripSolve</h3>
-                    <p>Stick sensors under sinks, behind toilets, near water heaters. Scan the QR code with our app — they appear on your dashboard instantly.</p>
+                    <p>Stick sensors under sinks, behind toilets, near water heaters. Plug in the sensor ID on your dashboard — they appear instantly.</p>
                 </div>
                 <div class="step">
                     <div class="step-num">3</div>
@@ -240,7 +250,7 @@
                         <li>Full dashboard access</li>
                         <li>Email support</li>
                     </ul>
-                    <a href="mailto:hello@dripsolve.com?subject=Starter%20Plan" class="btn btn-outline" style="display: block; text-align: center; text-decoration: none;">Start trial</a>
+                    <a href="#" class="btn btn-primary" style="display: block; text-align: center; text-decoration: none;" data-trial="starter">Start trial</a>
                 </div>
                 <div class="plan popular">
                     <div class="name">Professional</div>
@@ -254,7 +264,7 @@
                         <li>Monthly reports</li>
                         <li>Priority support</li>
                     </ul>
-                    <a href="mailto:hello@dripsolve.com?subject=Professional%20Plan" class="btn btn-primary" style="display: block; text-align: center; text-decoration: none;">Start trial</a>
+                    <a href="#" class="btn btn-primary" style="display: block; text-align: center; text-decoration: none;" data-trial="professional">Start trial</a>
                 </div>
                 <div class="plan">
                     <div class="name">Portfolio</div>
@@ -268,7 +278,7 @@
                         <li>Bulk sensor management</li>
                         <li>Dedicated support</li>
                     </ul>
-                    <a href="mailto:hello@dripsolve.com?subject=Portfolio%20Plan" class="btn btn-outline" style="display: block; text-align: center; text-decoration: none;">Start trial</a>
+                    <a href="#" class="btn btn-outline" style="display: block; text-align: center; text-decoration: none;" data-trial="portfolio">Start trial</a>
                 </div>
                 <div class="plan">
                     <div class="name">Enterprise</div>
@@ -321,7 +331,7 @@
         <div class="container">
             <h2>Stop chasing water leaks.</h2>
             <p>Start your free 14-day trial. No hardware, no commitment, no credit card.</p>
-            <a href="mailto:hello@dripsolve.com" class="btn btn-primary">hello@dripsolve.com</a>
+            <a href="#" class="btn btn-primary" data-trial="cta">Start free trial</a>
         </div>
     </div>
 
@@ -329,9 +339,75 @@
         <div class="container">DripSolve — hello@dripsolve.com</div>
     </footer>
 
+    <div class="modal-overlay" id="signupModal" onclick="if(event.target===this)closeSignup()">
+        <div class="modal-box">
+            <button class="close" onclick="closeSignup()">✕</button>
+            <h3>Start your free trial</h3>
+            <div class="sub">14 days free. No credit card. Cancel anytime.</div>
+            <div id="signupForm">
+                <div class="form-row">
+                    <div class="form-group"><label>First name</label><input id="suName" placeholder="John" required></div>
+                    <div class="form-group"><label>Last name</label><input id="suLast" placeholder="Doe" required></div>
+                </div>
+                <div class="form-group"><label>Email</label><input id="suEmail" type="email" placeholder="john@example.com" required></div>
+                <div class="form-row">
+                    <div class="form-group"><label>Phone</label><input id="suPhone" placeholder="(555) 123-4567"></div>
+                    <div class="form-group"><label>Property type</label><select id="suType"><option>Apartment building</option><option>Multi-family portfolio</option><option>Single-family rentals</option><option>Commercial</option></select></div>
+                </div>
+                <button class="btn btn-primary" onclick="submitSignup()" style="width:100%;margin-top:8px">Start trial</button>
+            </div>
+            <div id="signupSuccess" style="display:none;text-align:center;padding:20px">
+                <div style="font-size:48px;margin-bottom:12px">✅</div>
+                <div style="font-size:18px;font-weight:700;margin-bottom:4px">You're on the list!</div>
+                <p style="color:#64748b;font-size:14px">We'll email you at <span id="suEmailConfirm" style="font-weight:600;color:#0f172a"></span> with next steps to set up your dashboard.</p>
+            </div>
+        </div>
+    </div>
+
     <script>
         document.querySelectorAll('.faq-item').forEach(item => {
             item.addEventListener('click', () => item.classList.toggle('open'));
+        });
+
+        // Signup modal
+        function openSignup(plan) {
+            document.getElementById('signupModal').classList.add('open');
+            document.getElementById('signupForm').style.display = 'block';
+            document.getElementById('signupSuccess').style.display = 'none';
+        }
+        function closeSignup() {
+            document.getElementById('signupModal').classList.remove('open');
+        }
+        function submitSignup() {
+            const name = document.getElementById('suName').value.trim();
+            const last = document.getElementById('suLast').value.trim();
+            const email = document.getElementById('suEmail').value.trim();
+            if (!name || !last || !email) {
+                if (!name) document.getElementById('suName').style.borderColor = '#dc2626';
+                if (!last) document.getElementById('suLast').style.borderColor = '#dc2626';
+                if (!email) document.getElementById('suEmail').style.borderColor = '#dc2626';
+                return;
+            }
+            const lead = { name: name + ' ' + last, email, phone: document.getElementById('suPhone').value, type: document.getElementById('suType').value, date: new Date().toISOString() };
+            const leads = JSON.parse(localStorage.getItem('dripsolve-leads') || '[]');
+            leads.push(lead);
+            localStorage.setItem('dripsolve-leads', JSON.stringify(leads));
+            document.getElementById('suEmailConfirm').textContent = email;
+            document.getElementById('signupForm').style.display = 'none';
+            document.getElementById('signupSuccess').style.display = 'block';
+        }
+        // Wire up all trial buttons
+        document.querySelectorAll('[data-trial]').forEach(el => {
+            el.addEventListener('click', e => { e.preventDefault(); openSignup(el.dataset.trial); });
+        });
+        document.querySelectorAll('a[href*="Start" i], a[href*="start" i]').forEach(el => {
+            const txt = el.textContent.toLowerCase();
+            if (txt.includes('start trial') || txt.includes('start free')) {
+                if (!el.getAttribute('href') || el.getAttribute('href') === '#') {
+                    el.removeAttribute('href');
+                    el.addEventListener('click', e => { e.preventDefault(); openSignup(); });
+                }
+            }
         });
     </script>
 </body>
