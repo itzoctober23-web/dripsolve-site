@@ -185,9 +185,32 @@
             .grid-2 { grid-template-columns: 1fr; }
             .main { padding: 16px; }
         }
+
+        .login-screen { display: flex; position: fixed; inset: 0; z-index: 2000; background: #f1f5f9; align-items: center; justify-content: center; }
+        .login-screen.hidden { display: none; }
+        .login-box { background: white; padding: 40px; border-radius: 16px; max-width: 400px; width: 90%; text-align: center; box-shadow: 0 4px 24px rgba(0,0,0,0.06); }
+        .login-box .form-group { text-align: left; margin-bottom: 16px; }
+        .login-box .form-group label { display: block; font-size: 12px; font-weight: 600; color: #64748b; margin-bottom: 4px; }
+        .login-box .form-group input { width: 100%; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px; font-size: 14px; }
+        .login-box .form-group input:focus { outline: none; border-color: #0d9488; }
+        .login-box .btn { padding: 12px; border-radius: 8px; cursor: pointer; }
     </style>
 </head>
 <body>
+    <div id="loginScreen" class="login-screen">
+        <div class="login-box">
+            <svg width="140" height="32" viewBox="0 0 140 32" fill="none"><path d="M14 28L3 21V10L14 3L25 10V21L14 28Z" fill="#0d9488"/><path d="M7 14L12 19L21 10" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><text x="32" y="22" font-family="Inter" font-size="18" font-weight="900" fill="#0f172a">DRIP</text><text x="84" y="22" font-family="Inter" font-size="18" font-weight="600" fill="#0d9488">SOLVE</text></svg>
+            <div style="font-size:20px;font-weight:700;margin:16px 0 4px">Sign in to your dashboard</div>
+            <div style="font-size:13px;color:#64748b;margin-bottom:24px">Monitor your properties from anywhere</div>
+            <form onsubmit="return handleLogin(this)">
+                <div class="form-group"><label>Email</label><input id="loginEmail" type="email" value="admin@dripsolve.com" required></div>
+                <div class="form-group"><label>Password</label><input id="loginPass" type="password" value="demo123" required></div>
+                <div id="loginError" style="color:#dc2626;font-size:13px;margin-bottom:12px;display:none">Invalid email or password</div>
+                <button type="submit" class="btn btn-primary" style="width:100%">Sign in</button>
+            </form>
+            <div style="font-size:12px;color:#94a3b8;margin-top:16px">Demo — use the credentials above</div>
+        </div>
+    </div>
     <div class="sidebar">
         <div class="logo">
             <svg width="130" height="30" viewBox="0 0 145 32" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -204,12 +227,13 @@
         <a href="#" onclick="switchView('reports')" data-view="reports">📋 <span>Reports</span></a>
         <a href="#" onclick="switchView('settings')" data-view="settings">⚙️ <span>Settings</span></a>
         <div class="spacer"></div>
-        <div class="user" style="cursor:pointer" onclick="showModal('profile')">
+        <div class="user" style="cursor:default">
             <div class="avatar">JM</div>
-            <div>
+            <div style="flex:1">
                 <div style="font-size: 14px; font-weight: 600;">Jane Miller</div>
                 <div style="font-size: 12px; color: #64748b;">Portfolio owner</div>
             </div>
+            <div onclick="logout()" title="Sign out" style="cursor:pointer;color:#64748b;font-size:18px;padding:4px;border-radius:6px">⏻</div>
         </div>
     </div>
 
@@ -761,6 +785,18 @@
                 </div>
 
                 <div style="margin-bottom:20px">
+                    <div style="font-size:13px;font-weight:600;color:#64748b;margin-bottom:8px">Password</div>
+                    <form onsubmit="return changePassword(this)">
+                        <div id="passSuccess" style="color:#0d9488;font-size:13px;margin-bottom:8px;display:none">✅ Password updated</div>
+                        <div id="passError" style="color:#dc2626;font-size:13px;margin-bottom:8px;display:none"></div>
+                        <input id="setCurrentPass" type="password" placeholder="Current password" style="width:100%;border:1px solid #e2e8f0;border-radius:8px;padding:10px 14px;font-size:14px;margin-bottom:8px">
+                        <input id="setNewPass" type="password" placeholder="New password (min 6 chars)" style="width:100%;border:1px solid #e2e8f0;border-radius:8px;padding:10px 14px;font-size:14px;margin-bottom:8px">
+                        <input id="setConfirmPass" type="password" placeholder="Confirm new password" style="width:100%;border:1px solid #e2e8f0;border-radius:8px;padding:10px 14px;font-size:14px;margin-bottom:8px">
+                        <button type="submit" class="btn btn-outline" style="font-size:13px;padding:8px 16px">Change password</button>
+                    </form>
+                </div>
+
+                <div style="margin-bottom:20px">
                     <div style="font-size:13px;font-weight:600;color:#64748b;margin-bottom:8px">Subscription</div>
                     <div style="background:#f0fdfa;padding:16px;border-radius:8px;display:flex;justify-content:space-between;align-items-center">
                         <div><div style="font-weight:600">Pro plan</div><div style="font-size:13px;color:#64748b">$99/mo · 100 sensors · 5 properties</div></div>
@@ -1238,6 +1274,67 @@ document.addEventListener('click', function(e) {
     if (currentProperty) showPropertyDetail(currentProperty);
     showModal('success-' + type);
 });
+
+// ─── Login / Auth ───
+function getCreds() {
+    const c = localStorage.getItem('dripsolve-auth');
+    if (c) return JSON.parse(c);
+    return { email: 'admin@dripsolve.com', password: 'demo123' };
+}
+function handleLogin(form) {
+    const email = document.getElementById('loginEmail').value.trim();
+    const pass = document.getElementById('loginPass').value.trim();
+    const creds = getCreds();
+    if (email === creds.email && pass === creds.password) {
+        localStorage.setItem('dripsolve-session', email);
+        document.getElementById('loginScreen').classList.add('hidden');
+        return false;
+    }
+    document.getElementById('loginError').style.display = 'block';
+    return false;
+}
+function logout() {
+    localStorage.removeItem('dripsolve-session');
+    location.reload();
+}
+function changePassword(form) {
+    const current = document.getElementById('setCurrentPass').value;
+    const newPass = document.getElementById('setNewPass').value;
+    const confirm = document.getElementById('setConfirmPass').value;
+    const creds = getCreds();
+    if (current !== creds.password) {
+        document.getElementById('passError').style.display = 'block';
+        document.getElementById('passError').textContent = 'Current password is incorrect';
+        return false;
+    }
+    if (newPass.length < 6) {
+        document.getElementById('passError').style.display = 'block';
+        document.getElementById('passError').textContent = 'New password must be at least 6 characters';
+        return false;
+    }
+    if (newPass !== confirm) {
+        document.getElementById('passError').style.display = 'block';
+        document.getElementById('passError').textContent = 'Passwords do not match';
+        return false;
+    }
+    creds.password = newPass;
+    localStorage.setItem('dripsolve-auth', JSON.stringify(creds));
+    document.getElementById('passError').style.display = 'none';
+    document.getElementById('passSuccess').style.display = 'block';
+    document.getElementById('setCurrentPass').value = '';
+    document.getElementById('setNewPass').value = '';
+    document.getElementById('setConfirmPass').value = '';
+    return false;
+}
+
+// Check session on load
+(function() {
+    if (!localStorage.getItem('dripsolve-session')) {
+        document.getElementById('loginScreen').classList.remove('hidden');
+    } else {
+        document.getElementById('loginScreen').classList.add('hidden');
+    }
+})();
 
 // Initialize and render
 Store.init();
