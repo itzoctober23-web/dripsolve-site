@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DripSolve — Water Leak Detection Software for Apartments</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 50'%3E%3Cpath d='M25 46L6 34V15L25 4L44 15V34L25 46Z' fill='%230d9488'/%3E%3Cpath d='M14 22L21 30L34 16' stroke='white' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
@@ -13,8 +14,8 @@
         .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
 
         nav { display: flex; justify-content: space-between; align-items: center; padding: 20px 24px; max-width: 1100px; margin: 0 auto; }
-        .logo { font-size: 26px; font-weight: 800; color: #0d9488; }
-        .logo span { color: #0f172a; }
+        .logo { display: flex; align-items: center; gap: 8px; text-decoration: none; }
+        .logo svg { flex-shrink: 0; }
         .nav-links { display: flex; gap: 32px; align-items: center; }
         .nav-links a { text-decoration: none; color: #475569; font-size: 15px; font-weight: 500; }
         .nav-links a:hover { color: #0d9488; }
@@ -94,7 +95,14 @@
 </head>
 <body>
     <nav>
-        <div class="logo"><span>Drip</span>Solve</div>
+        <a href="#" class="logo">
+            <svg width="160" height="36" viewBox="0 0 160 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M16 33L3 25V11L16 3L29 11V25L16 33Z" fill="#0d9488"/>
+                <path d="M8.5 16L13.5 22L23 11" stroke="white" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <text x="38" y="25" font-family="Inter, sans-serif" font-size="20" font-weight="900" fill="#0f172a">DRIP</text>
+                <text x="96" y="25" font-family="Inter, sans-serif" font-size="20" font-weight="600" fill="#0d9488">SOLVE</text>
+            </svg>
+        </a>
         <div class="nav-links">
             <a href="#how">How it works</a>
             <a href="#features">Features</a>
