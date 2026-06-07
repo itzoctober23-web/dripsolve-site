@@ -51,6 +51,8 @@ Set each with `wrangler secret put <NAME>`. For local `wrangler dev`, copy `.dev
 
 > ⚠️ The old Tuya secret values were committed to git history (in `wrangler.toml`). Rotate them in the Tuya console and set the new values as secrets.
 
+> ⚠️ **Gotcha:** when setting secrets, do NOT pipe the value through PowerShell (`'x' | wrangler secret put NAME`) — it appends a trailing `\r\n`, which silently breaks Tuya calls with `"clientId is invalid"`. Set via redirected stdin from a newline-free file, or type it into the interactive prompt.
+
 The Worker also has D1 binding `DB` → `dripsolve-db` (ID: `a2bae2de-21c3-482f-8026-951a10096be7`).
 
 ## D1 Database Schema
@@ -177,14 +179,17 @@ For business endpoints: `GET /v1.0/iot-03/devices/{id}` (include access_token in
 - Stripe Payment Links created and integrated in dashboard
 - GitHub repo pushed; changes on branch `claude/affectionate-chatterjee-eb2aaa` (PR #2)
 
+### Tuya status (WORKING as of this session)
+The **cloud-credentials + device-ID** model works end-to-end: `/api/tuya-sync` reads the virtual sensor `vdevo178080038144948` (online, Flooding Detector, `watersensor_state=alarm`) and generates a leak alert. Users add device IDs via Settings → "Monitored Device IDs". This is the functional path today (for devices under the cloud project / a linked SmartLife account).
+
+**OAuth 2.0 redirect flow is NOT available:** in Tuya Console → Devices → Link App Account → Add App Account → "Configure OAuth 2.0 Authorization" does nothing when clicked (appears gated on the IoT Core plan — note the "Upgrade IoT Core Plan" banner). The app's `/api/tuya-auth` OAuth code is implemented and deployed but untested/unused until OAuth is enabled. For multi-tenant linking without OAuth, use "Tuya App Account Authorization" (QR/account linking) so cloud creds can see each customer's devices.
+
 ### Remaining
-1. **Finish Tuya OAuth (live test in progress).** In Tuya Console → `Devices` → `Link App Account`: enable login authorization, set data center to **Western America (us)**, set callback `https://dripsolve.com/api/tuya-auth?action=callback`, and copy the generated **authorization page URL** (the `authorize` action currently hardcodes a guessed `images.tuyaus.com/smart_home/auth` URL — replace with the real one). Then click Connect, log in, and read the `?tuya=` result. If `reason=sign invalid` → switch the exchange to the App-Authorization signature (adds `nonce` + `identifier`).
-2. Decide sync model: keep manual device IDs (current) vs. per-user OAuth auto-discovery (rewrites `/api/tuya-sync` to use the stored per-user token + refresh).
-3. Re-create / refresh the virtual sensor `vdevo178080038144948` (returns empty now — Tuya virtual devices expire when the debug session ends).
-4. Rotate the 4 Tuya secret values (old ones are in git history) in the Tuya console, then `wrangler secret put` the new values.
-5. Update dashboard Settings to let users add/edit Tuya device IDs in the UI.
-6. Test full Stripe → return-to-dashboard flow end-to-end.
-7. Resolve Gmail SMTP for `hello@dripsolve.com` (optional — email sending).
+1. (Optional) Enable Tuya OAuth 2.0 — requires upgrading the Tuya IoT Core plan, then configure callback `https://dripsolve.com/api/tuya-auth?action=callback` and replace the guessed authorize URL in the `authorize` action with the console-generated one.
+2. Reconcile Stripe pricing: site/dashboard show $49/$99/$199 but the Payment Links reportedly charge $9.99/$24.99/$99.99 — confirm in the Stripe dashboard and align one side.
+3. Configure each Stripe Payment Link's after-payment redirect (in Stripe dashboard) to `https://dripsolve.com/dashboard.html?subscribed=<plan>` (the `return_url` query param is ignored by Payment Links).
+4. Rotate the 4 Tuya secret values (old ones are in git history) in the Tuya console, then set via `wrangler secret put` (see gotcha above).
+5. Resolve Gmail SMTP for `hello@dripsolve.com` (optional — email sending).
 
 ### Deploy note
 `wrangler` serves UI from `dist/` (gitignored). Before `wrangler deploy`, copy HTML in: `Copy-Item index.html, dashboard.html dist\ -Force`.
