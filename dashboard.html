@@ -866,6 +866,16 @@
                     <div id="tuyaStatus" style="background:#f8fafc;padding:16px;border-radius:8px;text-align:center;color:#64748b;font-size:14px">Checking connection...</div>
                 </div>
 
+                <div style="margin-bottom:20px">
+                    <div style="font-size:13px;font-weight:600;color:#64748b;margin-bottom:8px">Monitored Device IDs</div>
+                    <div style="font-size:12px;color:#94a3b8;margin-bottom:8px">Add the Tuya device ID of each water sensor you want DripSolve to monitor. Find it in the Tuya / SmartLife app: open the device → ✏️/⚙️ settings → Device Information.</div>
+                    <div style="display:flex;gap:8px;margin-bottom:10px">
+                        <input id="newDeviceId" type="text" placeholder="e.g. vdevo123456789…" style="flex:1;border:1px solid #e2e8f0;border-radius:8px;padding:10px 14px;font-size:14px" onkeydown="if(event.key==='Enter'){event.preventDefault();addTuyaDevice();}">
+                        <button class="btn btn-primary" style="font-size:13px;padding:8px 16px" onclick="addTuyaDevice()">Add</button>
+                    </div>
+                    <div id="tuyaDeviceList" style="font-size:14px;color:#64748b">Loading…</div>
+                </div>
+
                 <button class="btn btn-outline" style="width:100%" onclick="showModal('settings-billing')">💳 Billing & payment</button>
                 <div style="margin-top:12px;font-size:12px;color:#94a3b8;text-align:center">Data syncs to cloud when signed in. Offline changes sync on next login.</div>
             </div>
@@ -896,7 +906,7 @@ function switchView(view) {
     const titles = {dashboard:'Dashboard',properties:'Properties',sensors:'Sensors',alerts:'Alerts',reports:'Reports',settings:'Settings'};
     document.getElementById('pageTitle').textContent = titles[view] || 'Dashboard';
     document.getElementById('mockLabel').style.display = view === 'dashboard' ? 'block' : 'none';
-    if (view === 'settings') checkTuyaStatus();
+    if (view === 'settings') { checkTuyaStatus(); loadTuyaDevices(); }
 }
 
 // Property detail data
@@ -2031,6 +2041,71 @@ async function syncTuyaDevices() {
     } catch (e) {
         if (el) el.innerHTML = '<div style="color:#dc2626;font-size:14px">❌ Sync failed. Try again.</div>';
     }
+}
+
+// ── Monitored Tuya device IDs ──
+function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
+
+function tuyaAuthHeaders(json) {
+    const h = { 'Authorization': 'Bearer ' + (localStorage.getItem('dripsolve-token') || '') };
+    if (json) h['Content-Type'] = 'application/json';
+    return h;
+}
+
+async function getTuyaDeviceIds() {
+    const res = await fetch(window.location.origin + '/api/tuya-devices', { headers: tuyaAuthHeaders() });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to load device IDs');
+    return data.device_ids || [];
+}
+
+function renderTuyaDevices(ids) {
+    const el = document.getElementById('tuyaDeviceList');
+    if (!el) return;
+    if (!ids.length) { el.innerHTML = '<div style="color:#94a3b8;font-size:13px">No device IDs added yet.</div>'; return; }
+    el.innerHTML = ids.map(id => {
+        const safe = escapeHtml(id);
+        return `<div style="display:flex;justify-content:space-between;align-items:center;background:#f8fafc;border-radius:8px;padding:8px 12px;margin-bottom:6px">
+            <span style="font-family:monospace;font-size:13px;word-break:break-all">${safe}</span>
+            <button class="btn btn-outline" style="font-size:12px;padding:4px 10px;color:#dc2626;border-color:#dc2626" onclick="removeTuyaDevice('${safe}')">Remove</button>
+        </div>`;
+    }).join('');
+}
+
+async function loadTuyaDevices() {
+    const el = document.getElementById('tuyaDeviceList');
+    if (!el) return;
+    try { renderTuyaDevices(await getTuyaDeviceIds()); }
+    catch (e) { el.innerHTML = '<div style="color:#94a3b8;font-size:13px">Could not load device IDs.</div>'; }
+}
+
+async function saveTuyaDeviceIds(ids) {
+    const res = await fetch(window.location.origin + '/api/tuya-devices', {
+        method: 'POST', headers: tuyaAuthHeaders(true), body: JSON.stringify({ device_ids: ids })
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || 'Save failed');
+    renderTuyaDevices(data.device_ids || ids);
+}
+
+async function addTuyaDevice() {
+    const input = document.getElementById('newDeviceId');
+    const id = (input.value || '').trim();
+    if (!id) return;
+    try {
+        const ids = await getTuyaDeviceIds();
+        if (ids.includes(id)) { input.value = ''; return; }
+        ids.push(id);
+        await saveTuyaDeviceIds(ids);
+        input.value = '';
+    } catch (e) { alert('Could not add device: ' + e.message); }
+}
+
+async function removeTuyaDevice(id) {
+    try {
+        const ids = (await getTuyaDeviceIds()).filter(x => x !== id);
+        await saveTuyaDeviceIds(ids);
+    } catch (e) { alert('Could not remove device: ' + e.message); }
 }
 
 function switchPlan(plan) {

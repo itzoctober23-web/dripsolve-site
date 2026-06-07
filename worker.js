@@ -252,13 +252,21 @@ async function handleApi(request, env, path, method, url) {
 
       userData.tuyaDevices = devices;
       userData.tuyaSyncedAt = new Date().toISOString();
-      if (alerts.length) {
-        userData.alerts = [...(userData.alerts || []), ...alerts];
+      // Dedup: don't re-add an alert for a device that already has the same
+      // alert type within the last 12h, so repeated polls don't pile up dupes.
+      const existingAlerts = userData.alerts || [];
+      const RECENT_MS = 12 * 60 * 60 * 1000;
+      const now = Date.now();
+      const freshAlerts = alerts.filter(a =>
+        !existingAlerts.some(e => e.id === a.id && e.type === a.type && (now - Date.parse(e.time || 0)) < RECENT_MS)
+      );
+      if (freshAlerts.length) {
+        userData.alerts = [...existingAlerts, ...freshAlerts];
       }
       await env.DB.prepare("INSERT INTO user_data (user_id, data, updated_at) VALUES (?, ?, datetime('now')) ON CONFLICT(user_id) DO UPDATE SET data = ?, updated_at = datetime('now')")
         .bind(userId, JSON.stringify(userData), JSON.stringify(userData)).run();
 
-      return json({ synced: true, devices, alerts });
+      return json({ synced: true, devices, alerts: freshAlerts });
     } catch (e) {
       return json({ error: e.message }, 502);
     }
