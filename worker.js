@@ -120,8 +120,9 @@ async function handleApi(request, env, path, method, url) {
   // Tuya auth
   if (path === '/api/tuya-auth') {
     const action = url.searchParams.get('action') || '';
-    const tuyaClientId = env.TUYA_CLIENT_ID;
-    const tuyaSecret = env.TUYA_CLIENT_SECRET;
+    // Use App Authorization credentials for OAuth flow
+    const tuyaClientId = env.TUYA_APP_CLIENT_ID || env.TUYA_CLIENT_ID;
+    const tuyaSecret = env.TUYA_APP_CLIENT_SECRET || env.TUYA_CLIENT_SECRET;
     if (!tuyaClientId || !tuyaSecret) return json({ error: 'Tuya not configured' }, 503);
 
     const auth = request.headers.get('Authorization');
