@@ -881,9 +881,6 @@
             </div>
         </div>
 
-        <div class="mock-label" id="mockLabel">
-            ⚡ This is a concept preview of the DripSolve dashboard. Actual interface may vary.
-        </div>
     </div>
 
     <div class="overlay" id="modalOverlay" onclick="closeModal(event)">
@@ -905,7 +902,7 @@ function switchView(view) {
     if (link) link.classList.add('active');
     const titles = {dashboard:'Dashboard',properties:'Properties',sensors:'Sensors',alerts:'Alerts',reports:'Reports',settings:'Settings'};
     document.getElementById('pageTitle').textContent = titles[view] || 'Dashboard';
-    document.getElementById('mockLabel').style.display = view === 'dashboard' ? 'block' : 'none';
+    const ml = document.getElementById('mockLabel'); if (ml) ml.style.display = 'none';
     if (view === 'settings') { checkTuyaStatus(); loadTuyaDevices(); }
 }
 
@@ -1028,8 +1025,11 @@ async function syncLocalToAPI() {
 async function syncAPIToLocal() {
     try {
         const data = await API.loadData();
-        if (data && data.properties) {
-            localStorage.setItem(Store.key, JSON.stringify(data));
+        if (data && typeof data === 'object' && !data.error) {
+            // Server is the source of truth (it holds live deviceStates + alerts from the
+            // monitoring cron). Merge over local so we keep version/structure if absent.
+            const merged = { ...Store.get(), ...data };
+            localStorage.setItem(Store.key, JSON.stringify(merged));
         }
     } catch {}
 }
@@ -1039,48 +1039,21 @@ const Store = {
 
     init() {
         const existing = localStorage.getItem(this.key);
-        const ver = existing ? JSON.parse(existing).version : 0;
-        if (ver >= 1) return;
-        const seed = {
-            version: 1, properties: [
-            { id:'dallas', name:'The Residences at Dallas', address:'123 Main St', city:'Dallas', state:'TX', units:24, status:'green', statusLabel:'All good' },
-            { id:'la', name:'Metropolis LA', address:'456 Sunset Blvd', city:'Los Angeles', state:'CA', units:32, status:'green', statusLabel:'All good' },
-            { id:'phoenix', name:'Azure Phoenix', address:'789 Desert Dr', city:'Phoenix', state:'AZ', units:18, status:'yellow', statusLabel:'1 offline' },
-            { id:'atlanta', name:'The Standard Atlanta', address:'321 Peachtree St', city:'Atlanta', state:'GA', units:12, status:'red', statusLabel:'Active alert' }
-        ], sensors: [
-            { id:'s1', propertyId:'dallas', unit:'101', location:'Kitchen sink', status:'Online', battery:'82%' },
-            { id:'s2', propertyId:'dallas', unit:'101', location:'Bathroom', status:'Online', battery:'76%' },
-            { id:'s3', propertyId:'dallas', unit:'102', location:'Water heater', status:'Online', battery:'91%' },
-            { id:'s4', propertyId:'dallas', unit:'103', location:'Washer hookup', status:'Online', battery:'64%' },
-            { id:'s5', propertyId:'dallas', unit:'104', location:'Toilet', status:'Online', battery:'55%' },
-            { id:'s6', propertyId:'la', unit:'201', location:'Kitchen sink', status:'Online', battery:'88%' },
-            { id:'s7', propertyId:'la', unit:'201', location:'Bathroom', status:'Online', battery:'72%' },
-            { id:'s8', propertyId:'la', unit:'202', location:'Water heater', status:'Online', battery:'43%' },
-            { id:'s9', propertyId:'la', unit:'203', location:'Washer hookup', status:'Online', battery:'67%' },
-            { id:'s10', propertyId:'la', unit:'204', location:'Dishwasher', status:'Online', battery:'90%' },
-            { id:'s11', propertyId:'phoenix', unit:'1', location:'Kitchen sink', status:'Online', battery:'78%' },
-            { id:'s12', propertyId:'phoenix', unit:'5', location:'Water heater', status:'Online', battery:'34%' },
-            { id:'s13', propertyId:'phoenix', unit:'12', location:'Bathroom', status:'Offline', battery:'0%' },
-            { id:'s14', propertyId:'phoenix', unit:'8', location:'Toilet', status:'Online', battery:'61%' },
-            { id:'s15', propertyId:'atlanta', unit:'204', location:'Kitchen sink', status:'Online', battery:'95%' },
-            { id:'s16', propertyId:'atlanta', unit:'205', location:'Bathroom', status:'Online', battery:'49%' },
-            { id:'s17', propertyId:'atlanta', unit:'206', location:'Water heater', status:'Online', battery:'83%' },
-            { id:'s18', propertyId:'atlanta', unit:'207', location:'Washer hookup', status:'Online', battery:'71%' }
-        ], tenants: [
-            { id:'t1', propertyId:'dallas', unit:'101', name:'Sarah Johnson', phone:'(214) 555-0101', email:'sarah@email.com', notify:'Both' },
-            { id:'t2', propertyId:'dallas', unit:'102', name:'Mike Torres', phone:'(214) 555-0102', email:'mike@email.com', notify:'Both' },
-            { id:'t3', propertyId:'dallas', unit:'103', name:'Amy Chen', phone:'(214) 555-0103', email:'amy@email.com', notify:'Email' }
-        ], logs: [
-            { id:'l1', propertyId:'dallas', date:'2026-05-28', unit:'7', desc:'Water heater fitting replaced', status:'Done' },
-            { id:'l2', propertyId:'dallas', date:'2026-05-15', unit:'12', desc:'Sensor battery replaced', status:'Done' },
-            { id:'l3', propertyId:'dallas', date:'2026-04-30', unit:'All', desc:'Routine inspection', status:'Done' }
-        ], alerts: [
-            { id:'a1', propertyId:'atlanta', unit:'204', location:'Kitchen sink', event:'Water detected', type:'Critical', status:'Active', time:'4 min ago' },
-            { id:'a2', propertyId:'phoenix', unit:'12', location:'Bathroom', event:'Sensor offline', type:'Warning', status:'Active', time:'3 hrs ago' },
-            { id:'a3', propertyId:'la', unit:'408', location:'Washer connection', event:'Leak resolved', type:'Resolved', status:'Resolved', time:'Yesterday' },
-            { id:'a4', propertyId:'dallas', unit:'7', location:'Water heater', event:'Leak resolved', type:'Resolved', status:'Resolved', time:'3 days ago' }
-        ] };
-        this.save(seed);
+        const db = existing ? JSON.parse(existing) : {};
+        if (db.version >= 2) return;
+        // v2: real product — start empty. Live sensor data + alerts come from the server.
+        // Preserve any server-synced monitoring fields that may already be present.
+        const fresh = {
+            version: 2,
+            properties: db.properties && db.version >= 2 ? db.properties : [],
+            sensors: db.sensors && db.version >= 2 ? db.sensors : [],
+            tenants: db.tenants && db.version >= 2 ? db.tenants : [],
+            logs: db.logs && db.version >= 2 ? db.logs : [],
+            alerts: db.alerts || [],
+            deviceStates: db.deviceStates || {},
+            settings: db.settings
+        };
+        this.save(fresh);
     },
 
     getSettings() {
@@ -1145,8 +1118,8 @@ const Store = {
 
     addSensor(data) {
         const db = this.get();
+        if (!db.sensors) db.sensors = [];
         data.id = 's' + Date.now();
-        data.status = data.status || 'Online';
         db.sensors.push(data);
         this.save(db);
     },
@@ -1172,31 +1145,70 @@ const Store = {
     getStats() {
         const props = this.getProperties();
         const sensors = this.getAllSensors();
-        const online = sensors.filter(s => s.status === 'Online').length;
+        const ds = this.get().deviceStates || {};
+        const online = sensors.filter(s => s.deviceId && ds[s.deviceId] && ds[s.deviceId].online && ds[s.deviceId].waterState !== 'alarm').length;
         const alerts = this.getAlerts();
-        const activeAlerts = alerts.filter(a => a.status === 'Active').length;
-        const critical = alerts.filter(a => a.status === 'Active' && a.type === 'Critical').length;
-        const warning = alerts.filter(a => a.status === 'Active' && a.type === 'Warning').length;
-        return { properties: props.length, totalSensors: sensors.length, online, offline: sensors.length - online, activeAlerts, critical, warning, prevented: 14 };
+        const active = alerts.filter(a => alertActive(a, ds));
+        const critical = active.filter(a => a.type === 'water_leak').length;
+        const warning = active.filter(a => a.type === 'offline').length;
+        const prevented = alerts.filter(a => a.type === 'water_leak').length;
+        return { properties: props.length, totalSensors: sensors.length, online, offline: sensors.length - online, activeAlerts: active.length, critical, warning, prevented };
     }
 };
+
+// ── Live-state helpers (driven by the monitoring cron's deviceStates) ──
+function deviceStateFor(sensor) {
+    return (sensor && sensor.deviceId) ? (Store.get().deviceStates || {})[sensor.deviceId] || null : null;
+}
+function alertActive(a, deviceStates) {
+    const ds = (deviceStates || {})[a.id];
+    if (!ds) return true; // no current reading → treat as still active
+    if (a.type === 'water_leak') return ds.waterState === 'alarm';
+    if (a.type === 'offline') return ds.online === false;
+    return true;
+}
+function propertyStatus(propId) {
+    const ds = Store.get().deviceStates || {};
+    const sensors = Store.getAllSensors().filter(s => s.propertyId === propId);
+    let alarm = 0, offline = 0, online = 0;
+    sensors.forEach(s => {
+        const st = s.deviceId ? ds[s.deviceId] : null;
+        if (!st) return;
+        if (st.waterState === 'alarm') alarm++;
+        else if (st.online === false) offline++;
+        else online++;
+    });
+    let status = 'green', label = 'All good';
+    if (alarm) { status = 'red'; label = alarm + ' active alert' + (alarm > 1 ? 's' : ''); }
+    else if (offline) { status = 'yellow'; label = offline + ' offline'; }
+    return { status, label, sensorCount: sensors.length, online, alertCount: alarm + offline };
+}
+function relTime(iso) {
+    const t = Date.parse(iso); if (isNaN(t)) return iso || '';
+    const m = Math.floor((Date.now() - t) / 60000);
+    if (m < 1) return 'just now';
+    if (m < 60) return m + ' min ago';
+    const h = Math.floor(m / 60); if (h < 24) return h + ' hr' + (h > 1 ? 's' : '') + ' ago';
+    const d = Math.floor(h / 24); return d + ' day' + (d > 1 ? 's' : '') + ' ago';
+}
 
 function renderProperties() {
     const props = Store.getProperties();
     const wrap = document.querySelector('.prop-grid-wrap .prop-grid');
     if (!wrap) return;
     wrap.innerHTML = props.map(p => {
-        const color = p.status === 'green' ? '#22c55e' : p.status === 'yellow' ? '#eab308' : '#dc2626';
-        const health = p.status === 'green' ? 100 : p.status === 'yellow' ? 94 : 92;
-        const sensors = Store.getAllSensors().filter(s => s.propertyId === p.id).length;
-        const alertsCount = Store.getAlerts().filter(a => a.propertyId === p.id && a.status === 'Active').length;
+        const ps = propertyStatus(p.id);
+        const color = ps.status === 'green' ? '#22c55e' : ps.status === 'yellow' ? '#eab308' : '#dc2626';
+        const health = ps.sensorCount ? Math.round((ps.online / ps.sensorCount) * 100) : 100;
+        const sensors = ps.sensorCount;
+        const alertsCount = ps.alertCount;
         return `<div class="prop-card" onclick="showModal('prop-${p.id}')">
             <div class="prop-head">
                 <div>
                     <h3>${p.name}</h3>
                     <div style="font-size:13px;color:#64748b">${p.city}, ${p.state}</div>
                 </div>
-                <span class="dot ${p.status}" style="width:12px;height:12px"></span>
+                <span class="dot ${ps.status}" style="width:12px;height:12px"></span>
             </div>
             <div class="prop-meta">
                 <span>🏠 ${p.units} units</span>
@@ -1220,22 +1232,28 @@ function renderSensorList() {
     if (!list) return;
     const items = sensors.map(s => {
         const prop = Store.getProperty(s.propertyId);
-        const pn = prop ? prop.name : 'Unknown';
-        const isOnline = s.status === 'Online';
-        const iconBg = isOnline ? 'green-bg' : 'yellow-bg';
-        const color = isOnline ? 'green' : 'yellow';
-        const label = isOnline ? '● Online' : '● Offline (battery)';
-        return `<div class="sensor-item" onclick="showModal('sensor-example')" data-property="${pn}" data-status="${s.status}">
-            <div class="sensor-icon ${iconBg}">📡</div>
+        const pn = prop ? prop.name : 'Unassigned';
+        const st = deviceStateFor(s);
+        let color, label, statusKey;
+        if (!st) { color = '#94a3b8'; label = '○ Pending first reading'; statusKey = 'Pending'; }
+        else if (st.waterState === 'alarm') { color = '#dc2626'; label = '🚨 Leak detected'; statusKey = 'Alert'; }
+        else if (st.online === false) { color = '#d97706'; label = '● Offline'; statusKey = 'Offline'; }
+        else { color = '#16a34a'; label = '● Online'; statusKey = 'Online'; }
+        const bat = (st && st.battery != null) ? ` · 🔋 ${st.battery}%` : '';
+        const dev = s.deviceId ? `<span style="font-family:monospace;font-size:11px;color:#94a3b8">${s.deviceId}</span>` : '';
+        return `<div class="sensor-item" data-property="${pn}" data-status="${statusKey}">
+            <div class="sensor-icon">📡</div>
             <div class="sensor-info">
-                <h4>${s.location} — Unit ${s.unit}</h4>
-                <p>${pn}</p>
+                <h4>${s.location || 'Sensor'}${s.unit ? ' — Unit ' + s.unit : ''}</h4>
+                <p>${pn}${bat} ${dev}</p>
             </div>
-            <div class="sensor-status ${color}">${label}</div>
+            <div class="sensor-status" style="color:${color};font-weight:600">${label}</div>
         </div>`;
     }).join('');
-    list.innerHTML = items + '<div id="sensorEmpty" style="display:none;text-align:center;padding:40px;color:#64748b;font-size:14px">No sensors match your filter.</div>';
-    document.querySelector('#view-sensors > div:first-child span').innerHTML = `<span id="sensorCount">${sensors.length}</span> sensors · <span id="sensorOnline">${sensors.filter(s=>s.status==='Online').length}</span> online · <span id="sensorOffline">${sensors.filter(s=>s.status!=='Online').length}</span> offline`;
+    const onboarding = '<div style="text-align:center;padding:48px 20px;color:#64748b"><div style="font-size:40px;margin-bottom:8px">📡</div><div style="font-weight:600;color:#0f172a;margin-bottom:4px">No sensors yet</div><div style="font-size:14px;margin-bottom:16px">Connect your first water sensor to start monitoring.</div><button class="btn btn-primary" onclick="showModal(\'add-sensor\')">+ Add a sensor</button></div>';
+    list.innerHTML = (sensors.length ? items : onboarding) + '<div id="sensorEmpty" style="display:none;text-align:center;padding:40px;color:#64748b;font-size:14px">No sensors match your filter.</div>';
+    const onlineCount = sensors.filter(s => { const st = deviceStateFor(s); return st && st.online && st.waterState !== 'alarm'; }).length;
+    document.querySelector('#view-sensors > div:first-child span').innerHTML = `<span id="sensorCount">${sensors.length}</span> sensors · <span id="sensorOnline">${onlineCount}</span> online · <span id="sensorOffline">${sensors.length - onlineCount}</span> offline`;
 }
 
 function renderDashboardStats() {
@@ -1268,36 +1286,46 @@ function renderDashboardPropertyList() {
     const container = document.querySelector('#view-dashboard .panel:first-child');
     if (!container) return;
     const items = props.slice(0, 4).map(p => {
-        const dot = `<span class="dot ${p.status}"></span>`;
+        const ps = propertyStatus(p.id);
+        const dot = `<span class="dot ${ps.status}"></span>`;
         return `<div class="property" onclick="showModal('prop-${p.id}')">
             <div class="info">
                 <h3>${p.name}</h3>
                 <p>${p.city}, ${p.state} · ${p.units} units</p>
             </div>
-            <div class="status">${dot} ${p.statusLabel}</div>
+            <div class="status">${dot} ${ps.label}</div>
         </div>`;
     }).join('');
-    container.innerHTML = '<h2>Properties <a href="#" onclick="switchView(\'properties\');return false">View all →</a></h2>' + items;
+    const empty = props.length ? '' : '<div style="text-align:center;padding:32px;color:#64748b;font-size:14px">No properties yet. Go to <a href="#" onclick="switchView(\'properties\');return false" style="color:#0d9488">Properties</a> to add your first building.</div>';
+    container.innerHTML = '<h2>Properties <a href="#" onclick="switchView(\'properties\');return false">View all →</a></h2>' + items + empty;
 }
 
 function renderAlerts() {
-    const alerts = Store.getAlerts();
+    const ds = Store.get().deviceStates || {};
+    const sensors = Store.getAllSensors();
+    const alerts = [...Store.getAlerts()].sort((a, b) => Date.parse(b.time || 0) - Date.parse(a.time || 0));
     const table = document.querySelector('#alertTable');
     if (!table) return;
     const rows = alerts.map(a => {
-        const tagClass = a.status === 'Active' ? 'new' : 'resolved';
-        const tagLabel = a.status === 'Active' ? (a.type === 'Critical' ? 'Active' : 'Warning') : 'Resolved';
-        const prop = Store.getProperty(a.propertyId);
-        const pn = prop ? prop.name : 'Unknown';
-        return `<tr onclick="showModal('alert-active')" style="cursor:pointer" data-alert-type="${a.type}">
-            <td><span class="tag ${tagClass}">${a.event}</span></td>
+        const active = alertActive(a, ds);
+        const sensor = sensors.find(s => s.deviceId === a.id);
+        const prop = sensor ? Store.getProperty(sensor.propertyId) : null;
+        const pn = prop ? prop.name : (a.name || 'Sensor');
+        const unitLoc = sensor ? `Unit ${sensor.unit || '—'} · ${sensor.location || ''}` : (a.name || '');
+        const event = a.type === 'water_leak' ? 'Water detected' : a.type === 'offline' ? 'Sensor offline' : (a.event || 'Alert');
+        const tagClass = active && a.type === 'water_leak' ? 'new' : 'resolved';
+        const statusLabel = active ? (a.type === 'water_leak' ? 'Active' : 'Warning') : 'Resolved';
+        const typeAttr = a.type === 'water_leak' ? 'Critical' : 'Warning';
+        return `<tr data-alert-type="${typeAttr}">
+            <td><span class="tag ${tagClass}">${event}</span></td>
             <td>${pn}</td>
-            <td>Unit ${a.unit} · ${a.location}</td>
-            <td><span class="tag ${tagClass}">${tagLabel}</span></td>
-            <td>${a.time}</td>
+            <td>${unitLoc}</td>
+            <td><span class="tag ${tagClass}">${statusLabel}</span></td>
+            <td>${relTime(a.time)}</td>
         </tr>`;
     }).join('');
-    table.innerHTML = '<tr><th>Event</th><th>Property</th><th>Unit</th><th>Status</th><th>Time</th></tr>' + rows + '</table><div id="alertEmpty" style="display:none;text-align:center;padding:40px;color:#64748b;font-size:14px">No alerts match your filter.</div>';
+    const empty = alerts.length ? '' : '<tr><td colspan="5" style="text-align:center;padding:40px;color:#64748b">No alerts — your sensors are monitored 24/7. You\'ll see leaks and offline sensors here.</td></tr>';
+    table.innerHTML = '<tr><th>Event</th><th>Property</th><th>Unit</th><th>Status</th><th>Time</th></tr>' + rows + empty + '<div id="alertEmpty" style="display:none;text-align:center;padding:40px;color:#64748b;font-size:14px">No alerts match your filter.</div>';
 }
 
 function renderAll() {
@@ -1392,8 +1420,12 @@ document.addEventListener('click', function(e) {
     closeModal();
     const type = formId.replace('form-', '');
     if (type === 'add-sensor') {
-        const prop = Store.getProperties().find(p => p.name === vals['property']);
-        Store.addSensor({ propertyId: prop ? prop.id : 'dallas', unit: vals['unit'], location: vals['location'], status: 'Online', battery: Math.floor(70 + Math.random()*25) + '%' });
+        const props = Store.getProperties();
+        const propId = vals['property'] || (props[0] && props[0].id) || '';
+        Store.addSensor({ propertyId: propId, unit: vals['unit'], location: vals['location'], deviceId: vals['deviceId'] });
+        renderAll();
+        // Poll Tuya right away so the new sensor's live status shows without waiting for the cron.
+        if (typeof syncTuyaDevices === 'function') setTimeout(syncTuyaDevices, 150);
     } else if (type === 'add-tenant') {
         const propId = currentProperty || 'dallas';
         Store.addTenant({ propertyId: propId, unit: vals['unit'], name: vals['name'], phone: vals['phone'], email: vals['email'] || '', notify: vals['notify'] || 'Both' });
@@ -1801,7 +1833,7 @@ const data = {
         icon: '📡',
         title: 'Add a sensor',
         sub: 'Assign a sensor to a unit',
-        form: '<form id="form-add-sensor"><div class="form-row"><div class="form-group"><label>Unit number</label><input name="unit" placeholder="e.g. 105" required></div><div class="form-group"><label>Location</label><select name="location"><option>Kitchen sink</option><option>Bathroom</option><option>Water heater</option><option>Washer hookup</option><option>Toilet</option><option>Dishwasher</option></select></div></div><div class="form-group"><label>Sensor ID</label><input name="sensorId" placeholder="ID printed on the back of the sensor" required></div><div class="form-group"><label>Property</label><select name="property"><option>The Residences at Dallas</option><option>Metropolis LA</option><option>Azure Phoenix</option><option>The Standard Atlanta</option></select></div></form><button class="btn" data-form-submit="form-add-sensor">➕ Add sensor</button><div class="highlight">💡 Compatible sensors are ~$15 on Amazon. Any WiFi moisture sensor works — DripSolve doesn\'t lock you into proprietary hardware.</div>',
+        form: '<form id="form-add-sensor"><div class="form-group"><label>Property</label><select name="property" id="sensorPropSelect"></select></div><div class="form-row"><div class="form-group"><label>Unit number</label><input name="unit" placeholder="e.g. 105" required></div><div class="form-group"><label>Location</label><select name="location"><option>Kitchen sink</option><option>Bathroom</option><option>Water heater</option><option>Washer hookup</option><option>Toilet</option><option>Dishwasher</option><option>Under sink</option><option>Basement</option></select></div></div><div class="form-group"><label>Tuya device ID</label><input name="deviceId" placeholder="e.g. vdevo1780..." required></div></form><button class="btn" data-form-submit="form-add-sensor">➕ Add sensor</button><div class="highlight">💡 Find the device ID in the Tuya / SmartLife app: open the device → ✏️ / ⚙️ → Device Information. The sensor must be registered in your linked Tuya account.</div>',
         wide: true
     },
     'add-tenant': {
@@ -1931,6 +1963,16 @@ function showModal(key) {
     document.getElementById('mSub').textContent = d.sub;
     if (d.form) {
         document.getElementById('mBody').innerHTML = d.form;
+        // Populate the property dropdown for add-sensor from the user's real properties
+        if (key === 'add-sensor') {
+            const sel = document.getElementById('sensorPropSelect');
+            const props = Store.getProperties();
+            if (sel) {
+                sel.innerHTML = props.length
+                    ? props.map(p => `<option value="${p.id}">${p.name}</option>`).join('')
+                    : '<option value="">No properties yet — add one first</option>';
+            }
+        }
         // Generate plan links for manage-plan
         if (key === 'manage-plan') {
             const container = document.getElementById('planLinks');
@@ -2046,11 +2088,20 @@ async function syncTuyaDevices() {
             headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('dripsolve-token') || '') }
         });
         await res.json();
+        await syncAPIToLocal();   // pull the fresh deviceStates/alerts the server just wrote
+        renderAll();              // reflect live status across all views
         checkTuyaStatus();
     } catch (e) {
         if (el) el.innerHTML = '<div style="color:#dc2626;font-size:14px">❌ Sync failed. Try again.</div>';
     }
 }
+
+// Periodically pull fresh monitoring data (the cron updates the server every 10 min).
+setInterval(async () => {
+    if (!localStorage.getItem('dripsolve-token')) return;
+    await syncAPIToLocal();
+    if (window.__rendered) renderAll();
+}, 60000);
 
 // ── Monitored Tuya device IDs ──
 function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
