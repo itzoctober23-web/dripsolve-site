@@ -7,7 +7,6 @@
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 50'%3E%3Cpath d='M25 46L6 34V15L25 4L44 15V34L25 46Z' fill='%230d9488'/%3E%3Cpath d='M14 22L21 30L34 16' stroke='white' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <script src="https://js.stripe.com/v3/"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Inter', -apple-system, sans-serif; background: #f1f5f9; color: #0f172a; display: flex; min-height: 100vh; }
@@ -154,6 +153,7 @@
         /* Modal */
         .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 1000; align-items: center; justify-content: center; }
         .overlay.open { display: flex; }
+        .hidden { display: none !important; }
         .modal { background: white; border-radius: 16px; max-width: 540px; width: 90%; padding: 32px; position: relative; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
         .modal .close { position: absolute; top: 16px; right: 16px; background: none; border: none; font-size: 20px; cursor: pointer; color: #94a3b8; }
         .modal .modal-icon { font-size: 32px; margin-bottom: 12px; display: block; }
@@ -243,6 +243,31 @@
             </form>
             <hr class="divider">
             <div class="hint">Demo: admin@dripsolve.com / demo123</div>
+        </div>
+    </div>
+    <div id="subscribeOverlay" class="overlay hidden" style="z-index:3000;background:rgba(15,23,42,0.5)">
+        <div class="modal" style="max-width:460px">
+            <button class="close" onclick="closeSubscribe()">✕</button>
+            <div style="font-size:24px;margin-bottom:4px;text-align:center">💳</div>
+            <h3 style="text-align:center;margin-bottom:4px">Subscribe to <span id="subPlan">Pro</span></h3>
+            <div style="text-align:center;font-size:14px;color:#64748b;margin-bottom:24px"><span id="subPrice">$99/mo</span> · <span id="subDesc">100 sensors · 5 properties</span></div>
+            <div id="subForm">
+                <div class="form-group"><label>Full name on card</label><input id="subName" placeholder="Jane Miller" required></div>
+                <div class="form-group"><label>Email</label><input id="subEmail" type="email" required></div>
+                <div class="form-group"><label>Card number</label><input id="subCard" placeholder="4242 4242 4242 4242" maxlength="19" oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/(.{4})/g,'$1 ').trim()"></div>
+                <div class="form-row">
+                    <div class="form-group"><label>Expiry</label><input id="subExp" placeholder="MM/YY" maxlength="5" oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/^(\d{2})/,'$1/').replace(/(\d{2})\/\d{3,}/,'$1/')"></div>
+                    <div class="form-group"><label>CVC</label><input id="subCvc" placeholder="123" maxlength="4" oninput="this.value=this.value.replace(/[^0-9]/g,'')"></div>
+                </div>
+                <button class="btn btn-primary" onclick="submitSubscribe()" style="width:100%;margin-top:8px;padding:12px">Subscribe — <span id="subPrice2">$99/mo</span></button>
+                <div style="margin-top:12px;font-size:11px;color:#94a3b8;text-align:center">🔒 Secure checkout. No real payment processed in demo mode. Your plan is saved locally.</div>
+            </div>
+            <div id="subSuccess" style="display:none;text-align:center;padding:20px">
+                <div style="font-size:48px;margin-bottom:12px">🎉</div>
+                <div style="font-size:20px;font-weight:700;margin-bottom:4px">You're subscribed!</div>
+                <div style="font-size:14px;color:#64748b;margin-bottom:16px">Your <span id="subPlanConfirm">Pro</span> plan is active now.</div>
+                <button class="btn btn-primary" onclick="closeSubscribe();location.reload()">Go to dashboard</button>
+            </div>
         </div>
     </div>
     <div class="sidebar">
@@ -1376,17 +1401,7 @@ renderAll();
 
 // ─── Stripe ───
 const STRIPE_CONFIG = {
-    publishableKey: 'pk_live_51TfUL2AwCnNVnY0RrqUut6XjMQCzan5si4PLGjffunKdyN2QPjYak5T3lhDZ7YT1fqP2fX8kYyZlU5LUSd1O4npv00F4MoPylI',
-    priceIds: {
-        starter: 'price_1TfUZjAwCnNVnY0RxUIA6dbO',
-        pro: 'price_1TfUcHAwCnNVnY0RoMcYi1gj',
-        portfolio: 'price_1TfUe0AwCnNVnY0RfSXrUbwM'
-    },
-    paymentLinks: {
-        starter: 'https://buy.stripe.com/plink_1TfUiBAwCnNVnY0RhPKvZlrR',
-        pro: 'https://buy.stripe.com/plink_1TfUj3AwCnNVnY0R9FxCovsz',
-        portfolio: 'https://buy.stripe.com/plink_1TfUjVAwCnNVnY0RE49m726P'
-    },
+    publishableKey: null,
     plans: [
         { id: 'starter', name: 'Starter', price: '$49/mo', desc: '25 sensors · 1 property', popular: false },
         { id: 'pro', name: 'Pro', price: '$99/mo', desc: '100 sensors · 5 properties', popular: true },
@@ -1395,7 +1410,42 @@ const STRIPE_CONFIG = {
     ]
 };
 
-const stripe = Stripe(STRIPE_CONFIG.publishableKey);
+// Opens a checkout overlay for the selected plan
+function showSubscribe(planId) {
+    const plan = STRIPE_CONFIG.plans.find(p => p.id === planId);
+    if (!plan) return;
+    document.getElementById('subPlan').textContent = plan.name;
+    document.getElementById('subPrice').textContent = plan.price;
+    document.getElementById('subDesc').textContent = plan.desc;
+    document.getElementById('subPrice2').textContent = plan.price;
+    document.getElementById('subPlanConfirm').textContent = plan.name;
+    document.getElementById('subEmail').value = document.getElementById('loginEmail').value || 'admin@dripsolve.com';
+    document.getElementById('subSuccess').style.display = 'none';
+    document.getElementById('subForm').style.display = 'block';
+    document.getElementById('subscribeOverlay').classList.remove('hidden');
+}
+
+function closeSubscribe() {
+    document.getElementById('subscribeOverlay').classList.add('hidden');
+}
+
+function submitSubscribe() {
+    const name = document.getElementById('subName').value.trim();
+    const card = document.getElementById('subCard').value.trim().replace(/\s/g, '');
+    const exp = document.getElementById('subExp').value.trim();
+    const cvc = document.getElementById('subCvc').value.trim();
+    if (!name || card.length < 13 || !exp || !cvc) {
+        alert('Please fill in all card details correctly.');
+        return;
+    }
+    const planEl = document.getElementById('subPlan');
+    const planName = planEl.textContent;
+    const settings = Store.getSettings();
+    settings.plan = STRIPE_CONFIG.plans.find(p => p.name === planName)?.id || 'pro';
+    Store.saveSettings(settings);
+    document.getElementById('subForm').style.display = 'none';
+    document.getElementById('subSuccess').style.display = 'block';
+}
 
 // Check for successful subscription on page load
 (function() {
@@ -1695,8 +1745,9 @@ function showModal(key) {
                     const isCurrent = p.id === currentPlan;
                     const extraStyle = isCurrent ? 'border-color:#0d9488;background:#f0fdfa' : '';
                     const badge = isCurrent ? ' <span style="font-size:11px;color:#0d9488">Current</span>' : '';
-                    const onclick = p.link ? `window.open('${p.link}','_blank')` : `window.open('${STRIPE_CONFIG.paymentLinks[p.id]}','_blank')`;
-                    return `<a href="#" onclick="${onclick};return false" class="btn btn-outline" style="text-align:left;padding:12px;text-decoration:none;display:block;${extraStyle}">🟢 ${p.name} · ${p.price} · ${p.desc}${badge}</a>`;
+                    const href = p.link || '#';
+                    const cls = isCurrent ? 'btn-outline' : 'btn-outline';
+                    return `<a href="${href}" onclick="${p.link ? '' : "event.preventDefault();showSubscribe('"+p.id+"')"}" target="${p.link ? '_blank' : '_self'}" class="${cls}" style="text-align:left;padding:12px;text-decoration:none;display:block;${extraStyle}">🟢 ${p.name} · ${p.price} · ${p.desc}${badge}</a>`;
                 }).join('');
             }
         }
