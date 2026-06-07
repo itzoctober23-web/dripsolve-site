@@ -1493,13 +1493,27 @@ function changePassword(form) {
 
 // Check session on load — verify with API in background
 (function() {
+    // Plan chosen on the marketing site (?plan=starter|pro|portfolio). Persist it so it
+    // survives the login/sign-up reload, then open checkout once the user is authenticated.
+    const wantedPlan = new URLSearchParams(location.search).get('plan');
+    if (wantedPlan) {
+        localStorage.setItem('dripsolve-intended-plan', wantedPlan);
+        const u = new URL(location); u.searchParams.delete('plan'); history.replaceState({}, '', u);
+    }
+    function openIntendedPlan() {
+        const plan = localStorage.getItem('dripsolve-intended-plan');
+        if (!plan) return;
+        localStorage.removeItem('dripsolve-intended-plan');
+        if (typeof subscribeToPlan === 'function') subscribeToPlan(plan);
+    }
+
     const session = localStorage.getItem('dripsolve-session');
     if (!session) {
         document.getElementById('loginScreen').classList.remove('hidden');
         Store.init();
         renderAll();
         window.__rendered = true;
-        return;
+        return; // intended plan stays stored; opens after they log in / sign up
     }
     document.getElementById('loginScreen').classList.add('hidden');
     API.verify().then(user => {
@@ -1510,12 +1524,14 @@ function changePassword(form) {
             renderAll();
             window.__rendered = true;
         }
+        openIntendedPlan();
     });
     setTimeout(() => {
         if (!window.__rendered) {
             Store.init();
             renderAll();
             window.__rendered = true;
+            openIntendedPlan();
         }
     }, 600);
 })();
