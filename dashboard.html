@@ -188,13 +188,15 @@
 
         @media (max-width: 600px) {
             body { flex-direction: column; }
-            .sidebar { width: 100%; padding: 8px 12px; flex-direction: row; align-items: center; gap: 4px; overflow-x: auto; }
+            .sidebar { width: 100%; padding: 6px; flex-direction: row; align-items: center; gap: 0; overflow-x: auto; white-space: nowrap; }
             .sidebar .logo { margin-bottom: 0; flex-shrink: 0; }
-            .sidebar a { padding: 8px 10px; font-size: 13px; white-space: nowrap; }
-            .sidebar a span { display: inline; }
+            .sidebar .logo svg { width: 70px; height: auto; }
+            .sidebar a span { display: none; }
+            .sidebar a { padding: 6px 8px; font-size: 11px; }
             .sidebar .spacer { display: none; }
             .sidebar .user { border-top: none; padding-top: 0; margin-top: 0; flex-shrink: 0; }
             .sidebar .user > div { display: none; }
+            .sidebar .user .avatar { width: 26px; height: 26px; font-size: 10px; }
             .main { padding: 12px; }
             .cards { grid-template-columns: 1fr; gap: 10px; }
             .topbar { flex-direction: column; align-items: flex-start; gap: 8px; margin-bottom: 16px; }
