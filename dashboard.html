@@ -186,6 +186,31 @@
             .main { padding: 16px; }
         }
 
+        @media (max-width: 600px) {
+            body { flex-direction: column; }
+            .sidebar { width: 100%; padding: 8px 12px; flex-direction: row; align-items: center; gap: 4px; overflow-x: auto; }
+            .sidebar .logo { margin-bottom: 0; flex-shrink: 0; }
+            .sidebar a { padding: 8px 10px; font-size: 13px; white-space: nowrap; }
+            .sidebar a span { display: inline; }
+            .sidebar .spacer { display: none; }
+            .sidebar .user { border-top: none; padding-top: 0; margin-top: 0; flex-shrink: 0; }
+            .sidebar .user > div { display: none; }
+            .main { padding: 12px; }
+            .cards { grid-template-columns: 1fr; gap: 10px; }
+            .topbar { flex-direction: column; align-items: flex-start; gap: 8px; margin-bottom: 16px; }
+            .topbar h1 { font-size: 20px; }
+            .topbar-right { gap: 10px; }
+            .grid-2 { gap: 12px; }
+            .panel { padding: 16px; }
+            .sensor-item { flex-wrap: wrap; gap: 8px; }
+            .property { flex-wrap: wrap; gap: 8px; }
+            .table-wrap { overflow-x: auto; }
+            table { font-size: 12px; }
+            .prop-card { padding: 14px; }
+            .select-group { flex-wrap: wrap; }
+            .select-group select { flex: 1; min-width: 0; }
+        }
+
         .login-screen { display: flex; position: fixed; inset: 0; z-index: 2000; background: #f1f5f9; align-items: center; justify-content: center; }
         .login-screen.hidden { display: none; }
         .login-box { background: white; padding: 40px; border-radius: 16px; max-width: 400px; width: 90%; text-align: center; box-shadow: 0 4px 24px rgba(0,0,0,0.06); }
