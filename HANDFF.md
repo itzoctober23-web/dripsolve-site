@@ -37,14 +37,19 @@ wrangler deploy   # builds assets from dist/ and deploys worker + static files
 
 No build step needed — `dist/` contains pre-copied HTML files. After editing `worker.js`, `_shared.js`, or `dist/*.html`, re-deploy.
 
-## Environment Variables (set in wrangler.toml)
+## Secrets (Cloudflare secrets — NOT in wrangler.toml)
 
-| Variable | Value | Purpose |
-|----------|-------|---------|
-| `TUYA_CLIENT_ID` | `s537yq45fx3nf7dvttnq` | Cloud Authorization Access ID |
-| `TUYA_CLIENT_SECRET` | `e14bab9a2865422eaa3bce97e4a5d6f4` | Cloud Authorization Secret |
-| `TUYA_APP_CLIENT_ID` | `sp8emhrsknday9c93gy8` | App Authorization Access ID (for OAuth) |
-| `TUYA_APP_CLIENT_SECRET` | `ffea7590c71948a1965a67b470d74689` | App Authorization Secret |
+Set each with `wrangler secret put <NAME>`. For local `wrangler dev`, copy `.dev.vars.example` to `.dev.vars` (gitignored) and fill in values.
+
+| Variable | Purpose |
+|----------|---------|
+| `JWT_SECRET` | Signs auth tokens (HMAC-SHA256). Worker 500s if unset. |
+| `TUYA_CLIENT_ID` | Cloud Authorization Access ID |
+| `TUYA_CLIENT_SECRET` | Cloud Authorization Secret |
+| `TUYA_APP_CLIENT_ID` | App Authorization Access ID (for OAuth) |
+| `TUYA_APP_CLIENT_SECRET` | App Authorization Secret |
+
+> ⚠️ The old Tuya secret values were committed to git history (in `wrangler.toml`). Rotate them in the Tuya console and set the new values as secrets.
 
 The Worker also has D1 binding `DB` → `dripsolve-db` (ID: `a2bae2de-21c3-482f-8026-951a10096be7`).
 
@@ -150,8 +155,8 @@ For business endpoints: `GET /v1.0/iot-03/devices/{id}` (include access_token in
 |---------|-----------|
 | Cloudflare API | Token in wrangler OAuth config (logged in as `itzoctober23@gmail.com`) |
 | Stripe | Account dashboard at dashboard.stripe.com |
-| Tuya Cloud | Client ID: `s537yq45fx3nf7dvttnq`, Secret: `e14bab9a2865422eaa3bce97e4a5d6f4` |
-| Tuya App OAuth | Client ID: `sp8emhrsknday9c93gy8`, Secret: `ffea7590c71948a1965a67b470d74689` |
+| Tuya Cloud | Stored as Cloudflare secrets `TUYA_CLIENT_ID` / `TUYA_CLIENT_SECRET` (rotate — old values leaked in git history) |
+| Tuya App OAuth | Stored as Cloudflare secrets `TUYA_APP_CLIENT_ID` / `TUYA_APP_CLIENT_SECRET` (rotate — old values leaked in git history) |
 | GitHub | Repo: `itzoctober23-web/dripsolve-site` (auto-deploy from main branch not active) |
 | D1 Database | Name: `dripsolve-db`, ID: `a2bae2de-21c3-482f-8026-951a10096be7` |
 | Custom domain | `dripsolve.com` on Cloudflare, proxied to Worker |

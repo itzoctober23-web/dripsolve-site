@@ -12,8 +12,10 @@ binding = "DB"
 database_name = "dripsolve-db"
 database_id = "a2bae2de-21c3-482f-8026-951a10096be7"
 
-[vars]
-TUYA_CLIENT_ID = "s537yq45fx3nf7dvttnq"
-TUYA_CLIENT_SECRET = "e14bab9a2865422eaa3bce97e4a5d6f4"
-TUYA_APP_CLIENT_ID = "sp8emhrsknday9c93gy8"
-TUYA_APP_CLIENT_SECRET = "ffea7590c71948a1965a67b470d74689"
+# Secrets are NOT stored here (they end up in git history). Set them with:
+#   wrangler secret put JWT_SECRET
+#   wrangler secret put TUYA_CLIENT_ID
+#   wrangler secret put TUYA_CLIENT_SECRET
+#   wrangler secret put TUYA_APP_CLIENT_ID
+#   wrangler secret put TUYA_APP_CLIENT_SECRET
+# For local `wrangler dev`, put them in .dev.vars (gitignored). See .dev.vars.example.
