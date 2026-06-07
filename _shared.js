@@ -8,17 +8,41 @@ async function hashPassword(password, salt) {
 
 function generateId() { return crypto.randomUUID(); }
 
-function makeToken(userId) {
-  const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
-  const payload = btoa(JSON.stringify({ sub: userId, exp: Math.floor(Date.now() / 1000) + 86400 * 30 }));
-  return header + '.' + payload;
+// base64url helpers (JWT-safe, no +/= chars)
+function b64url(str) {
+  return btoa(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+function b64urlDecode(str) {
+  str = str.replace(/-/g, '+').replace(/_/g, '/');
+  while (str.length % 4) str += '=';
+  return atob(str);
+}
+
+async function hmacSign(data, secret) {
+  const enc = new TextEncoder();
+  const key = await crypto.subtle.importKey('raw', enc.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const sig = await crypto.subtle.sign('HMAC', key, enc.encode(data));
+  return b64url(String.fromCharCode(...new Uint8Array(sig)));
+}
+
+async function makeToken(userId, secret) {
+  const header = b64url(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+  const payload = b64url(JSON.stringify({ sub: userId, exp: Math.floor(Date.now() / 1000) + 86400 * 30 }));
+  const sig = await hmacSign(header + '.' + payload, secret);
+  return header + '.' + payload + '.' + sig;
 }
 
 async function verifyToken(token, secret) {
   try {
     const parts = token.split('.');
-    if (parts.length !== 2) return null;
-    const payload = JSON.parse(atob(parts[1]));
+    if (parts.length !== 3) return null;
+    const expected = await hmacSign(parts[0] + '.' + parts[1], secret);
+    // constant-time comparison to avoid timing leaks
+    if (expected.length !== parts[2].length) return null;
+    let diff = 0;
+    for (let i = 0; i < expected.length; i++) diff |= expected.charCodeAt(i) ^ parts[2].charCodeAt(i);
+    if (diff !== 0) return null;
+    const payload = JSON.parse(b64urlDecode(parts[1]));
     if (payload.exp * 1000 < Date.now()) return null;
     return payload.sub;
   } catch { return null; }
