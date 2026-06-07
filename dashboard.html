@@ -1561,7 +1561,10 @@ function closeSubscribe() {
 function openCheckout() {
     const plan = STRIPE_CONFIG.plans.find(p => p.id === selectedPlanId);
     if (!plan) return;
-    const email = encodeURIComponent(document.getElementById('loginEmail').value || 'admin@dripsolve.com');
+    let userEmail = '';
+    try { userEmail = (JSON.parse(localStorage.getItem('dripsolve-user') || '{}').email) || ''; } catch (e) {}
+    const loginField = document.getElementById('loginEmail');
+    const email = encodeURIComponent(userEmail || (loginField && loginField.value) || '');
     const url = STRIPE_CONFIG.paymentLinks[plan.id];
     if (!url) return;
     const settings = Store.getSettings();
