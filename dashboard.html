@@ -1983,25 +1983,15 @@ async function checkTuyaStatus() {
             headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('dripsolve-token') || '') }
         });
         const data = await res.json();
-        if (data.connected) {
-            const deviceCount = data.devices ? data.devices.length : 0;
-            const waterDevices = data.devices ? data.devices.filter(d => d.is_water).length : 0;
-            el.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center">
-                <div><div style="font-weight:600;color:#0d9488">✅ Tuya connected</div>
-                <div style="font-size:13px;color:#64748b">${deviceCount} devices · ${waterDevices} water sensors</div></div>
-                <div style="display:flex;gap:8px">
-                    <button class="btn btn-outline" style="font-size:12px;padding:6px 12px" onclick="syncTuyaDevices()">Sync</button>
-                    <button class="btn btn-outline" style="font-size:12px;padding:6px 12px;color:#dc2626;border-color:#dc2626" onclick="disconnectTuya()">Disconnect</button>
-                </div></div>`;
-        } else {
-            el.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center">
-                <div><div style="font-weight:600">🔌 Not connected</div>
-                <div style="font-size:13px;color:#64748b">Link your Tuya Smart account to see sensors</div></div>
-                <button class="btn btn-primary" style="font-size:12px;padding:6px 14px" onclick="connectTuya()">Connect</button>
-            </div>`;
-        }
+        const deviceCount = data.devices ? data.devices.length : 0;
+        const synced = data.syncedAt ? new Date(data.syncedAt).toLocaleString() : 'never';
+        el.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center">
+            <div style="text-align:left"><div style="font-weight:600;color:#0d9488">💧 Sensor sync</div>
+            <div style="font-size:13px;color:#64748b">${deviceCount} sensor${deviceCount === 1 ? '' : 's'} · last synced ${synced}</div></div>
+            <button class="btn btn-primary" style="font-size:12px;padding:6px 14px" onclick="syncTuyaDevices()">Sync now</button>
+        </div>`;
     } catch (e) {
-        el.innerHTML = `<div style="color:#64748b;font-size:14px">⚠️ Tuya service not configured. Set up in Settings later.</div>`;
+        el.innerHTML = `<div style="color:#64748b;font-size:14px">Add your sensor device IDs below, then tap Sync.</div>`;
     }
 }
 
