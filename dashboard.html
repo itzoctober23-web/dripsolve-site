@@ -246,27 +246,22 @@
         </div>
     </div>
     <div id="subscribeOverlay" class="overlay hidden" style="z-index:3000;background:rgba(15,23,42,0.5)">
-        <div class="modal" style="max-width:460px">
+        <div class="modal" style="max-width:420px">
             <button class="close" onclick="closeSubscribe()">✕</button>
-            <div style="font-size:24px;margin-bottom:4px;text-align:center">💳</div>
-            <h3 style="text-align:center;margin-bottom:4px">Subscribe to <span id="subPlan">Pro</span></h3>
-            <div style="text-align:center;font-size:14px;color:#64748b;margin-bottom:24px"><span id="subPrice">$99/mo</span> · <span id="subDesc">100 sensors · 5 properties</span></div>
-            <div id="subForm">
-                <div class="form-group"><label>Full name on card</label><input id="subName" placeholder="Jane Miller" required></div>
-                <div class="form-group"><label>Email</label><input id="subEmail" type="email" required></div>
-                <div class="form-group"><label>Card number</label><input id="subCard" placeholder="4242 4242 4242 4242" maxlength="19" oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/(.{4})/g,'$1 ').trim()"></div>
-                <div class="form-row">
-                    <div class="form-group"><label>Expiry</label><input id="subExp" placeholder="MM/YY" maxlength="5" oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/^(\d{2})/,'$1/').replace(/(\d{2})\/\d{3,}/,'$1/')"></div>
-                    <div class="form-group"><label>CVC</label><input id="subCvc" placeholder="123" maxlength="4" oninput="this.value=this.value.replace(/[^0-9]/g,'')"></div>
-                </div>
-                <button class="btn btn-primary" onclick="submitSubscribe()" style="width:100%;margin-top:8px;padding:12px">Subscribe — <span id="subPrice2">$99/mo</span></button>
-                <div style="margin-top:12px;font-size:11px;color:#94a3b8;text-align:center">🔒 Secure checkout. No real payment processed in demo mode. Your plan is saved locally.</div>
+            <div style="font-size:48px;margin-bottom:8px;text-align:center">🚀</div>
+            <h3 style="text-align:center;margin-bottom:4px">Upgrade to <span id="subPlan">Pro</span></h3>
+            <div style="text-align:center;font-size:14px;color:#64748b;margin-bottom:20px"><span id="subPrice">$99/mo</span> · <span id="subDesc">100 sensors</span></div>
+            <div id="subForm" style="text-align:center">
+                <p style="font-size:14px;color:#475569;margin-bottom:16px">You'll be redirected to Stripe's secure checkout to complete payment.</p>
+                <button class="btn btn-primary" onclick="openCheckout()" style="width:100%;padding:12px">Continue to Stripe</button>
+                <div style="margin-top:12px;font-size:11px;color:#94a3b8">🔒 Secured by Stripe · <span id="subPrice2">$99/mo</span></div>
             </div>
-            <div id="subSuccess" style="display:none;text-align:center;padding:20px">
-                <div style="font-size:48px;margin-bottom:12px">🎉</div>
-                <div style="font-size:20px;font-weight:700;margin-bottom:4px">You're subscribed!</div>
-                <div style="font-size:14px;color:#64748b;margin-bottom:16px">Your <span id="subPlanConfirm">Pro</span> plan is active now.</div>
-                <button class="btn btn-primary" onclick="closeSubscribe();location.reload()">Go to dashboard</button>
+            <div id="subSuccess" style="display:none;text-align:center;padding:16px">
+                <div style="font-size:48px;margin-bottom:8px">🎉</div>
+                <div style="font-size:18px;font-weight:700;margin-bottom:4px">You're subscribed!</div>
+                <div style="font-size:13px;color:#64748b;margin-bottom:8px"><span id="subPlanConfirm">Pro</span> plan activated.</div>
+                <div style="font-size:12px;color:#94a3b8;margin-bottom:16px">Returned from Stripe? Click confirm to activate your plan on this device.</div>
+                <button class="btn btn-primary" onclick="confirmSubscription()" style="padding:10px 24px">Confirm & refresh</button>
             </div>
         </div>
     </div>
@@ -1401,7 +1396,12 @@ renderAll();
 
 // ─── Stripe ───
 const STRIPE_CONFIG = {
-    publishableKey: null,
+    publishableKey: 'pk_live_51TfUL2AwCnNVnY0RrqUut6XjMQCzan5si4PLGjffunKdyN2QPjYak5T3lhDZ7YT1fqP2fX8kYyZlU5LUSd1O4npv00F4MoPylI',
+    paymentLinks: {
+        starter: 'https://buy.stripe.com/6oUeVc6W3c1j5Fb23fasg00',
+        pro: 'https://buy.stripe.com/3cI5kCcgne9rdD7J6vasg01',
+        portfolio: 'https://buy.stripe.com/9B65kC0xFfdv7NjeQ1asg02'
+    },
     plans: [
         { id: 'starter', name: 'Starter', price: '$49/mo', desc: '25 sensors · 1 property', popular: false },
         { id: 'pro', name: 'Pro', price: '$99/mo', desc: '100 sensors · 5 properties', popular: true },
@@ -1410,8 +1410,10 @@ const STRIPE_CONFIG = {
     ]
 };
 
-// Opens a checkout overlay for the selected plan
-function showSubscribe(planId) {
+let selectedPlanId = null;
+
+function subscribeToPlan(planId) {
+    selectedPlanId = planId;
     const plan = STRIPE_CONFIG.plans.find(p => p.id === planId);
     if (!plan) return;
     document.getElementById('subPlan').textContent = plan.name;
@@ -1419,9 +1421,8 @@ function showSubscribe(planId) {
     document.getElementById('subDesc').textContent = plan.desc;
     document.getElementById('subPrice2').textContent = plan.price;
     document.getElementById('subPlanConfirm').textContent = plan.name;
-    document.getElementById('subEmail').value = document.getElementById('loginEmail').value || 'admin@dripsolve.com';
-    document.getElementById('subSuccess').style.display = 'none';
     document.getElementById('subForm').style.display = 'block';
+    document.getElementById('subSuccess').style.display = 'none';
     const el = document.getElementById('subscribeOverlay');
     el.classList.remove('hidden');
     el.style.display = 'flex';
@@ -1431,36 +1432,59 @@ function closeSubscribe() {
     document.getElementById('subscribeOverlay').classList.add('hidden');
 }
 
-function submitSubscribe() {
-    const name = document.getElementById('subName').value.trim();
-    const card = document.getElementById('subCard').value.trim().replace(/\s/g, '');
-    const exp = document.getElementById('subExp').value.trim();
-    const cvc = document.getElementById('subCvc').value.trim();
-    if (!name || card.length < 13 || !exp || !cvc) {
-        alert('Please fill in all card details correctly.');
-        return;
-    }
-    const planEl = document.getElementById('subPlan');
-    const planName = planEl.textContent;
+function openCheckout() {
+    const plan = STRIPE_CONFIG.plans.find(p => p.id === selectedPlanId);
+    if (!plan) return;
+    const email = encodeURIComponent(document.getElementById('loginEmail').value || 'admin@dripsolve.com');
+    const url = STRIPE_CONFIG.paymentLinks[plan.id];
+    if (!url) return;
     const settings = Store.getSettings();
-    settings.plan = STRIPE_CONFIG.plans.find(p => p.name === planName)?.id || 'pro';
+    settings.pendingPlan = plan.id;
     Store.saveSettings(settings);
-    document.getElementById('subForm').style.display = 'none';
-    document.getElementById('subSuccess').style.display = 'block';
+    const returnUrl = encodeURIComponent('https://dripsolve.com/dashboard.html?subscribed=' + plan.id);
+    window.location.href = url + '?prefilled_email=' + email + '&return_url=' + returnUrl;
 }
 
 // Check for successful subscription on page load
 (function() {
     const params = new URLSearchParams(window.location.search);
-    if (params.get('subscribed') === 'true') {
+    const subscribed = params.get('subscribed');
+    if (subscribed && STRIPE_CONFIG.plans.some(p => p.id === subscribed)) {
         const settings = Store.getSettings();
-        settings.plan = 'pro';
+        settings.plan = subscribed;
+        delete settings.pendingPlan;
         Store.saveSettings(settings);
         const url = new URL(window.location);
         url.searchParams.delete('subscribed');
         window.history.replaceState({}, '', url);
+        document.getElementById('subPlanConfirm').textContent = STRIPE_CONFIG.plans.find(p => p.id === subscribed).name;
+        document.getElementById('subSuccess').style.display = 'block';
     }
 })();
+
+// Check for pending plan (user may return without redirect)
+(function() {
+    const settings = Store.getSettings();
+    if (settings.pendingPlan && settings.plan !== settings.pendingPlan) {
+        const el = document.getElementById('subscribeOverlay');
+        el.classList.remove('hidden');
+        el.style.display = 'flex';
+        document.getElementById('subForm').style.display = 'none';
+        const plan = STRIPE_CONFIG.plans.find(p => p.id === settings.pendingPlan);
+        if (plan) document.getElementById('subPlanConfirm').textContent = plan.name;
+        document.getElementById('subSuccess').style.display = 'block';
+    }
+})();
+
+function confirmSubscription() {
+    const settings = Store.getSettings();
+    if (settings.pendingPlan) {
+        settings.plan = settings.pendingPlan;
+        delete settings.pendingPlan;
+        Store.saveSettings(settings);
+        location.reload();
+    }
+}
 
 const data = {
     'properties': {
@@ -1747,9 +1771,10 @@ function showModal(key) {
                     const isCurrent = p.id === currentPlan;
                     const extraStyle = isCurrent ? 'border-color:#0d9488;background:#f0fdfa' : '';
                     const badge = isCurrent ? ' <span style="font-size:11px;color:#0d9488">Current</span>' : '';
-                    const href = p.link || '#';
+                    const href = p.link || 'javascript:void(0)';
                     const cls = isCurrent ? 'btn-outline' : 'btn-outline';
-                    return `<a href="${href}" onclick="${p.link ? '' : "event.preventDefault();showSubscribe('"+p.id+"')"}" target="${p.link ? '_blank' : '_self'}" class="${cls}" style="text-align:left;padding:12px;text-decoration:none;display:block;${extraStyle}">🟢 ${p.name} · ${p.price} · ${p.desc}${badge}</a>`;
+                    const onclick = p.link ? '' : `event.preventDefault();subscribeToPlan('${p.id}')`;
+                    return `<a href="${href}" onclick="${onclick}" class="${cls}" style="text-align:left;padding:12px;text-decoration:none;display:block;${extraStyle}">🟢 ${p.name} · ${p.price} · ${p.desc}${badge}</a>`;
                 }).join('');
             }
         }
