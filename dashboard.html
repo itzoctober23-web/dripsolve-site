@@ -7,6 +7,7 @@
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 50'%3E%3Cpath d='M25 46L6 34V15L25 4L44 15V34L25 46Z' fill='%230d9488'/%3E%3Cpath d='M14 22L21 30L34 16' stroke='white' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://js.stripe.com/v3/"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Inter', -apple-system, sans-serif; background: #f1f5f9; color: #0f172a; display: flex; min-height: 100vh; }
@@ -1373,6 +1374,54 @@ function changePassword(form) {
 Store.init();
 renderAll();
 
+// ─── Stripe ───
+const STRIPE_CONFIG = {
+    publishableKey: 'pk_live_51TfUL2AwCnNVnY0RrqUut6XjMQCzan5si4PLGjffunKdyN2QPjYak5T3lhDZ7YT1fqP2fX8kYyZlU5LUSd1O4npv00F4MoPylI',
+    priceIds: {
+        starter: 'price_1TfUZjAwCnNVnY0RxUIA6dbO',
+        pro: 'price_1TfUcHAwCnNVnY0RoMcYi1gj',
+        portfolio: 'price_1TfUe0AwCnNVnY0RfSXrUbwM'
+    },
+    paymentLinks: {
+        starter: null,
+        pro: null,
+        portfolio: null
+    },
+    plans: [
+        { id: 'starter', name: 'Starter', price: '$49/mo', desc: '25 sensors · 1 property', popular: false },
+        { id: 'pro', name: 'Pro', price: '$99/mo', desc: '100 sensors · 5 properties', popular: true },
+        { id: 'portfolio', name: 'Portfolio', price: '$199/mo', desc: '500 sensors · 25 properties', popular: false },
+        { id: 'enterprise', name: 'Enterprise', price: 'Custom', desc: 'Unlimited', popular: false, link: 'mailto:hello@dripsolve.com?subject=Enterprise%20plan' }
+    ]
+};
+
+const stripe = Stripe(STRIPE_CONFIG.publishableKey);
+
+function subscribe(priceId) {
+    stripe.redirectToCheckout({
+        lineItems: [{ price: priceId, quantity: 1 }],
+        mode: 'subscription',
+        successUrl: window.location.origin + '/dashboard.html?subscribed=true',
+        cancelUrl: window.location.origin + '/dashboard.html'
+    }).catch(err => {
+        // Fallback if redirectToCheckout fails (e.g. no sessionId returned)
+        window.open('https://buy.stripe.com/8wAaF65iB8wAaF6', '_blank');
+    });
+}
+
+// Check for successful subscription on page load
+(function() {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('subscribed') === 'true') {
+        const settings = Store.getSettings();
+        settings.plan = 'pro';
+        Store.saveSettings(settings);
+        const url = new URL(window.location);
+        url.searchParams.delete('subscribed');
+        window.history.replaceState({}, '', url);
+    }
+})();
+
 const data = {
     'properties': {
         icon: '🏢',
@@ -1511,7 +1560,7 @@ const data = {
         icon: '📋',
         title: 'Manage plan',
         sub: 'Current: Pro · $99/mo',
-        form: '<div style="margin-bottom:8px;font-size:13px;color:#64748b">Switch to a different plan:</div><div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px"><button class="btn btn-outline" style="text-align:left;padding:12px" onclick="switchPlan(\'starter\')">🟢 Starter · $49/mo · 25 sensors · 1 property</button><button class="btn btn-outline" style="text-align:left;padding:12px;border-color:#0d9488;background:#f0fdfa" onclick="switchPlan(\'pro\')">🟢 Pro · $99/mo · 100 sensors · 5 properties <span style="font-size:11px;color:#0d9488">Current</span></button><button class="btn btn-outline" style="text-align:left;padding:12px" onclick="switchPlan(\'portfolio\')">🟢 Portfolio · $199/mo · 500 sensors · 25 properties</button><button class="btn btn-outline" style="text-align:left;padding:12px" onclick="switchPlan(\'enterprise\')">🔵 Enterprise · Custom · Unlimited</button></div><div class="highlight" id="planConfirm" style="display:none">✅ Plan updated. Changes reflected on next billing cycle.</div><button class="btn btn-primary" onclick="showModal(\'settings-billing\')">💳 View billing details</button>',
+        form: '<div style="margin-bottom:8px;font-size:13px;color:#64748b">Choose a plan — billed monthly. Cancel anytime.</div><div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px" id="planLinks"></div><div class="highlight" id="planConfirm">💳 Secure checkout via Stripe. Your card is charged after you confirm the subscription.</div>',
         wide: true
     },
     'add-sensor': {
@@ -1648,6 +1697,21 @@ function showModal(key) {
     document.getElementById('mSub').textContent = d.sub;
     if (d.form) {
         document.getElementById('mBody').innerHTML = d.form;
+        // Generate plan links for manage-plan
+        if (key === 'manage-plan') {
+            const container = document.getElementById('planLinks');
+            if (container) {
+                const settings = Store.getSettings();
+                const currentPlan = settings.plan || 'pro';
+                container.innerHTML = STRIPE_CONFIG.plans.map(p => {
+                    const isCurrent = p.id === currentPlan;
+                    const extraStyle = isCurrent ? 'border-color:#0d9488;background:#f0fdfa' : '';
+                    const badge = isCurrent ? ' <span style="font-size:11px;color:#0d9488">Current</span>' : '';
+                    const onclick = p.link ? `window.open('${p.link}','_blank')` : `subscribe('${STRIPE_CONFIG.priceIds[p.id]}')`;
+                    return `<a href="#" onclick="${onclick};return false" class="btn btn-outline" style="text-align:left;padding:12px;text-decoration:none;display:block;${extraStyle}">🟢 ${p.name} · ${p.price} · ${p.desc}${badge}</a>`;
+                }).join('');
+            }
+        }
     } else {
         document.getElementById('mBody').innerHTML = '<div class="modal-desc">' + d.desc + '</div><div class="highlight">' + d.highlight + '</div>';
     }
