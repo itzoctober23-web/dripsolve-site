@@ -93,7 +93,14 @@ async function handleApi(request, env, path, method, url) {
     }
 
     if (method === 'PUT') {
-      const raw = JSON.stringify(body);
+      // Server-managed monitoring fields are owned by the cron / device endpoints.
+      // Preserve them so a client save (which doesn't know about them) can't wipe them.
+      const SERVER_OWNED = ['deviceStates', 'tuyaDevices', 'tuyaSyncedAt', 'tuyaDeviceIds', 'alerts'];
+      const existingRow = await env.DB.prepare('SELECT data FROM user_data WHERE user_id = ?').bind(userId).first();
+      const existing = existingRow ? JSON.parse(existingRow.data || '{}') : {};
+      const merged = { ...body };
+      for (const k of SERVER_OWNED) if (k in existing) merged[k] = existing[k];
+      const raw = JSON.stringify(merged);
       await env.DB.prepare("INSERT INTO user_data (user_id, data, updated_at) VALUES (?, ?, datetime('now')) ON CONFLICT(user_id) DO UPDATE SET data = ?, updated_at = datetime('now')")
         .bind(userId, raw, raw).run();
       return json({ ok: true });
