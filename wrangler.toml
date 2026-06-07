@@ -7,6 +7,10 @@ compatibility_flags = ["nodejs_compat"]
 directory = "dist"
 not_found_handling = "404-page"
 
+# Automatic sensor monitoring — poll Tuya for every user's devices every 10 minutes.
+[triggers]
+crons = ["*/10 * * * *"]
+
 [[d1_databases]]
 binding = "DB"
 database_name = "dripsolve-db"
