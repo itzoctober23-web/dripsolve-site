@@ -1,0 +1,14 @@
+# Copy this file to .dev.vars (gitignored) and fill in real values for `wrangler dev`.
+# In production these are set as Cloudflare secrets via `wrangler secret put <NAME>`.
+
+# Strong random string used to sign auth tokens (HMAC-SHA256).
+# Generate one with: node -e "console.log(require('crypto').randomBytes(48).toString('base64'))"
+JWT_SECRET=replace-with-a-long-random-secret
+
+# Tuya Cloud Authorization credentials (Cloud project access ID / secret)
+TUYA_CLIENT_ID=replace-me
+TUYA_CLIENT_SECRET=replace-me
+
+# Tuya App Authorization credentials (used for the OAuth "Link App Account" flow)
+TUYA_APP_CLIENT_ID=replace-me
+TUYA_APP_CLIENT_SECRET=replace-me

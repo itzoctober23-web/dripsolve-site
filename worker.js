@@ -1,7 +1,5 @@
 // DripSolve Worker — serves static assets + API routes
-import { hashPassword, generateId, makeToken, verifyToken, tuyaApi, makeTuyaCreds } from './_shared.js';
-
-const JWT_SECRET = 'dripsolve-jwt-secret-2026';
+import { hashPassword, generateId, makeToken, verifyToken, tuyaApi, makeTuyaCreds, makeTuyaAppCreds, tuyaExchangeCode } from './_shared.js';
 
 async function handleRequest(request, env) {
   const url = new URL(request.url);
@@ -17,6 +15,8 @@ async function handleRequest(request, env) {
 }
 
 async function handleApi(request, env, path, method, url) {
+  const JWT_SECRET = env.JWT_SECRET;
+  if (!JWT_SECRET) return json({ error: 'Server auth not configured (JWT_SECRET missing)' }, 500);
   const body = method === 'POST' || method === 'PUT' ? await request.json().catch(() => ({})) : {};
 
   // Auth endpoints
@@ -34,7 +34,7 @@ async function handleApi(request, env, path, method, url) {
       await env.DB.prepare('INSERT INTO users (id, email, name, password_hash) VALUES (?, ?, ?, ?)')
         .bind(id, email.toLowerCase(), name || '', password_hash).run();
       await env.DB.prepare('INSERT INTO user_data (user_id, data) VALUES (?, ?)').bind(id, '{}').run();
-      const token = makeToken(id);
+      const token = await makeToken(id, JWT_SECRET);
       return json({ token, user: { id, email: email.toLowerCase(), name: name || '', plan: 'starter' } }, 201);
     }
 
@@ -45,7 +45,7 @@ async function handleApi(request, env, path, method, url) {
       if (!user) return json({ error: 'Invalid email or password' }, 401);
       const hash = await hashPassword(password, email.toLowerCase());
       if (hash !== user.password_hash) return json({ error: 'Invalid email or password' }, 401);
-      const token = makeToken(user.id);
+      const token = await makeToken(user.id, JWT_SECRET);
       return json({ token, user: { id: user.id, email: user.email, name: user.name, plan: user.plan } });
     }
 
@@ -61,6 +61,8 @@ async function handleApi(request, env, path, method, url) {
 
     if (action === 'change-password') {
       const { currentPassword, newPassword } = body;
+      if (!currentPassword || !newPassword) return json({ error: 'Current and new password required' }, 400);
+      if (newPassword.length < 6) return json({ error: 'New password must be at least 6 characters' }, 400);
       const auth = request.headers.get('Authorization');
       if (!auth) return json({ error: 'No token' }, 401);
       const userId = await verifyToken(auth.replace('Bearer ', ''), JWT_SECRET);
@@ -138,12 +140,26 @@ async function handleApi(request, env, path, method, url) {
     }
 
     if (action === 'callback') {
-      const { code, state } = url.searchParams;
+      const code = url.searchParams.get('code');
+      const state = url.searchParams.get('state');
       if (!code) return json({ error: 'No code' }, 400);
       const userId = state ? state.split(':')[0] : null;
       if (!userId) return json({ error: 'Invalid state' }, 400);
-      // Redirect back to dashboard
-      return Response.redirect(url.origin + '/dashboard.html', 302);
+      // Exchange the authorization code for a user token and persist it.
+      // Never throw out of the callback — always land the user back on the dashboard.
+      try {
+        const appCreds = makeTuyaAppCreds(env);
+        const tok = await tuyaExchangeCode(appCreds, code);
+        const expiresAt = new Date(Date.now() + (tok.expire_time || 7200) * 1000).toISOString();
+        await env.DB.prepare(
+          "INSERT INTO tuya_tokens (user_id, access_token, refresh_token, uid, expires_at) VALUES (?, ?, ?, ?, ?) " +
+          "ON CONFLICT(user_id) DO UPDATE SET access_token = excluded.access_token, refresh_token = excluded.refresh_token, uid = excluded.uid, expires_at = excluded.expires_at"
+        ).bind(userId, tok.access_token, tok.refresh_token, tok.uid, expiresAt).run();
+        return Response.redirect(url.origin + '/dashboard.html?tuya=connected', 302);
+      } catch (e) {
+        // Surface a short reason in the URL so we can debug the live flow.
+        return Response.redirect(url.origin + '/dashboard.html?tuya=error&reason=' + encodeURIComponent(e.message || 'exchange_failed'), 302);
+      }
     }
 
     if (action === 'status') {

@@ -8,7 +8,7 @@ DripSolve is a SaaS water leak detection dashboard platform. Users buy Tuya-comp
 
 - **Hosting**: Cloudflare Workers (single `worker.js` with static assets from `dist/`)
 - **Database**: Cloudflare D1 (SQLite-compatible), database name `dripsolve-db`
-- **Auth**: Custom JWT-like tokens (PBKDF2 password hashing, HMAC-based tokens, 30-day expiry)
+- **Auth**: Custom JWT tokens — PBKDF2 password hashing, real HMAC-SHA256 signed tokens (`header.payload.signature`), 30-day expiry. `JWT_SECRET` is a Cloudflare secret (NOT in source/wrangler.toml); the Worker fails closed with a 500 if it is unset.
 - **Payments**: Stripe Payment Links (redirect-based, no Stripe SDK needed)
 - **Tuya API**: Direct REST calls to `openapi.tuyaus.com` with HMAC-SHA256 signing
 - **Static files**: `index.html` (landing page), `dashboard.html` (SaaS dashboard) served from `dist/`
@@ -37,14 +37,19 @@ wrangler deploy   # builds assets from dist/ and deploys worker + static files
 
 No build step needed — `dist/` contains pre-copied HTML files. After editing `worker.js`, `_shared.js`, or `dist/*.html`, re-deploy.
 
-## Environment Variables (set in wrangler.toml)
+## Secrets (Cloudflare secrets — NOT in wrangler.toml)
 
-| Variable | Value | Purpose |
-|----------|-------|---------|
-| `TUYA_CLIENT_ID` | `s537yq45fx3nf7dvttnq` | Cloud Authorization Access ID |
-| `TUYA_CLIENT_SECRET` | `e14bab9a2865422eaa3bce97e4a5d6f4` | Cloud Authorization Secret |
-| `TUYA_APP_CLIENT_ID` | `sp8emhrsknday9c93gy8` | App Authorization Access ID (for OAuth) |
-| `TUYA_APP_CLIENT_SECRET` | `ffea7590c71948a1965a67b470d74689` | App Authorization Secret |
+Set each with `wrangler secret put <NAME>`. For local `wrangler dev`, copy `.dev.vars.example` to `.dev.vars` (gitignored) and fill in values.
+
+| Variable | Purpose |
+|----------|---------|
+| `JWT_SECRET` | Signs auth tokens (HMAC-SHA256). Worker 500s if unset. |
+| `TUYA_CLIENT_ID` | Cloud Authorization Access ID |
+| `TUYA_CLIENT_SECRET` | Cloud Authorization Secret |
+| `TUYA_APP_CLIENT_ID` | App Authorization Access ID (for OAuth) |
+| `TUYA_APP_CLIENT_SECRET` | App Authorization Secret |
+
+> ⚠️ The old Tuya secret values were committed to git history (in `wrangler.toml`). Rotate them in the Tuya console and set the new values as secrets.
 
 The Worker also has D1 binding `DB` → `dripsolve-db` (ID: `a2bae2de-21c3-482f-8026-951a10096be7`).
 
@@ -150,32 +155,39 @@ For business endpoints: `GET /v1.0/iot-03/devices/{id}` (include access_token in
 |---------|-----------|
 | Cloudflare API | Token in wrangler OAuth config (logged in as `itzoctober23@gmail.com`) |
 | Stripe | Account dashboard at dashboard.stripe.com |
-| Tuya Cloud | Client ID: `s537yq45fx3nf7dvttnq`, Secret: `e14bab9a2865422eaa3bce97e4a5d6f4` |
-| Tuya App OAuth | Client ID: `sp8emhrsknday9c93gy8`, Secret: `ffea7590c71948a1965a67b470d74689` |
+| Tuya Cloud | Stored as Cloudflare secrets `TUYA_CLIENT_ID` / `TUYA_CLIENT_SECRET` (rotate — old values leaked in git history) |
+| Tuya App OAuth | Stored as Cloudflare secrets `TUYA_APP_CLIENT_ID` / `TUYA_APP_CLIENT_SECRET` (rotate — old values leaked in git history) |
 | GitHub | Repo: `itzoctober23-web/dripsolve-site` (auto-deploy from main branch not active) |
 | D1 Database | Name: `dripsolve-db`, ID: `a2bae2de-21c3-482f-8026-951a10096be7` |
 | Custom domain | `dripsolve.com` on Cloudflare, proxied to Worker |
-| JWT Secret (hardcoded) | `dripsolve-jwt-secret-2026` (in worker.js) |
+| JWT Secret | Cloudflare secret `JWT_SECRET` — set via `wrangler secret put JWT_SECRET`. NOT in source. (Old hardcoded `dripsolve-jwt-secret-2026` is retired.) |
 
-## Current Status (June 7, 2026)
+## Current Status (deployed to prod: June 7, 2026)
 
 ### Done
 - Worker deployed serving static site + API at `dripsolve.com`
 - D1 database with users, user_data, sensor_readings, tuya_tokens tables
-- Full auth API (signup, login, verify, change-password)
+- **Auth hardened: real HMAC-SHA256 signed tokens; forged/tampered tokens rejected (verified live). `JWT_SECRET` + all 4 Tuya creds are Cloudflare secrets (no longer in source).**
+- Full auth API (signup, login, verify, change-password) with password-length validation
 - User data API (GET/PUT JSON blob)
-- Tuya Cloud API integration (HMAC-SHA256 signing, token management)
-- Virtual water leak sensor created (ID: `vdevo178080038144948`) reporting `alarm` state
+- Tuya Cloud API integration (HMAC-SHA256 signing, token management) — verified working through secrets
+- **Tuya OAuth code→token exchange implemented in `/api/tuya-auth?action=callback` (grant_type=2), stores token in `tuya_tokens`, redirects with `?tuya=connected|error&reason=...`. Best-effort: Cloud-style signature + app client_id; signature scheme NOT yet confirmed against live Tuya.**
+- Dashboard shows a toast for the OAuth connect result.
 - Tuya sync endpoint queries devices by IDs and generates leak alerts
 - Stripe Payment Links created and integrated in dashboard
-- GitHub repo pushed
+- GitHub repo pushed; changes on branch `claude/affectionate-chatterjee-eb2aaa` (PR #2)
 
 ### Remaining
-1. Configure Tuya OAuth callback URL in Tuya Console: `Devices` → `Link App Account` → select DripSolveWeb → `https://dripsolve.com/api/tuya-auth?action=callback`
-2. Update dashboard Settings to let users add/edit Tuya device IDs (currently only supports API)
-3. Test full Stripe → return-to-dashboard flow end-to-end
-4. Resolve Gmail SMTP for `hello@dripsolve.com` (optional — email sending)
-5. Run DripSolve.bat for lead generation
+1. **Finish Tuya OAuth (live test in progress).** In Tuya Console → `Devices` → `Link App Account`: enable login authorization, set data center to **Western America (us)**, set callback `https://dripsolve.com/api/tuya-auth?action=callback`, and copy the generated **authorization page URL** (the `authorize` action currently hardcodes a guessed `images.tuyaus.com/smart_home/auth` URL — replace with the real one). Then click Connect, log in, and read the `?tuya=` result. If `reason=sign invalid` → switch the exchange to the App-Authorization signature (adds `nonce` + `identifier`).
+2. Decide sync model: keep manual device IDs (current) vs. per-user OAuth auto-discovery (rewrites `/api/tuya-sync` to use the stored per-user token + refresh).
+3. Re-create / refresh the virtual sensor `vdevo178080038144948` (returns empty now — Tuya virtual devices expire when the debug session ends).
+4. Rotate the 4 Tuya secret values (old ones are in git history) in the Tuya console, then `wrangler secret put` the new values.
+5. Update dashboard Settings to let users add/edit Tuya device IDs in the UI.
+6. Test full Stripe → return-to-dashboard flow end-to-end.
+7. Resolve Gmail SMTP for `hello@dripsolve.com` (optional — email sending).
+
+### Deploy note
+`wrangler` serves UI from `dist/` (gitignored). Before `wrangler deploy`, copy HTML in: `Copy-Item index.html, dashboard.html dist\ -Force`.
 
 ## How to Continue
 

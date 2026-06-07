@@ -1578,6 +1578,31 @@ function openCheckout() {
     }
 })();
 
+// Show result of the Tuya OAuth "Connect" flow (set by the worker callback redirect)
+(function() {
+    const params = new URLSearchParams(window.location.search);
+    const tuya = params.get('tuya');
+    if (!tuya) return;
+    const ok = tuya === 'connected';
+    const reason = params.get('reason');
+    const msg = ok
+        ? '✅ Tuya account connected.'
+        : '⚠️ Tuya connection failed' + (reason ? ': ' + reason : '.');
+    const t = document.createElement('div');
+    t.textContent = msg;
+    t.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:9999;'
+        + 'max-width:90%;padding:12px 20px;border-radius:8px;font-size:14px;font-weight:600;'
+        + 'box-shadow:0 4px 16px rgba(0,0,0,.2);color:#fff;background:' + (ok ? '#16a34a' : '#dc2626') + ';';
+    document.body.appendChild(t);
+    setTimeout(function() { t.style.transition = 'opacity .4s'; t.style.opacity = '0'; setTimeout(function() { t.remove(); }, 400); }, ok ? 4000 : 12000);
+    // Clean the params out of the URL so a refresh doesn't re-show the toast
+    const url = new URL(window.location);
+    url.searchParams.delete('tuya');
+    url.searchParams.delete('reason');
+    window.history.replaceState({}, '', url);
+    if (ok && typeof checkTuyaStatus === 'function') checkTuyaStatus();
+})();
+
 // Check for pending plan (user may return without redirect)
 (function() {
     const settings = Store.getSettings();
