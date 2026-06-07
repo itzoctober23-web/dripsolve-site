@@ -98,4 +98,39 @@ function makeTuyaCreds(env) {
   return { client_id: env.TUYA_CLIENT_ID, client_secret: env.TUYA_CLIENT_SECRET };
 }
 
-export { hashPassword, generateId, makeToken, verifyToken, corsHeaders, json, tuyaSign, tuyaGetToken, tuyaApi, makeTuyaCreds };
+// App Authorization credentials (used for the OAuth "Link App Account" flow)
+function makeTuyaAppCreds(env) {
+  return {
+    client_id: env.TUYA_APP_CLIENT_ID || env.TUYA_CLIENT_ID,
+    client_secret: env.TUYA_APP_CLIENT_SECRET || env.TUYA_CLIENT_SECRET,
+  };
+}
+
+// Exchange an OAuth authorization code for a user access token (grant_type=2).
+// NOTE: the code is bound to the client_id that requested authorization, so this
+// must use the SAME creds the authorize URL used (the app creds). Query params are
+// sorted alphabetically (code before grant_type) per Tuya's signing rules.
+async function tuyaExchangeCode(creds, code, base = 'https://openapi.tuyaus.com') {
+  const path = '/v1.0/token?code=' + encodeURIComponent(code) + '&grant_type=2';
+  const { sign, t } = await tuyaSign(creds, 'GET', path);
+  const res = await fetch(base + path, {
+    headers: { client_id: creds.client_id, sign, t, sign_method: 'HMAC-SHA256' },
+  });
+  const data = await res.json();
+  if (!data.success) throw new Error('code-exchange [' + (data.code || '?') + ']: ' + (data.msg || JSON.stringify(data)));
+  return data.result; // { access_token, refresh_token, uid, expire_time }
+}
+
+// Refresh an expired user access token. Path: GET /v1.0/token/{refresh_token}
+async function tuyaRefreshUserToken(creds, refreshToken, base = 'https://openapi.tuyaus.com') {
+  const path = '/v1.0/token/' + encodeURIComponent(refreshToken);
+  const { sign, t } = await tuyaSign(creds, 'GET', path);
+  const res = await fetch(base + path, {
+    headers: { client_id: creds.client_id, sign, t, sign_method: 'HMAC-SHA256' },
+  });
+  const data = await res.json();
+  if (!data.success) throw new Error('token-refresh [' + (data.code || '?') + ']: ' + (data.msg || JSON.stringify(data)));
+  return data.result; // { access_token, refresh_token, uid, expire_time }
+}
+
+export { hashPassword, generateId, makeToken, verifyToken, corsHeaders, json, tuyaSign, tuyaGetToken, tuyaApi, makeTuyaCreds, makeTuyaAppCreds, tuyaExchangeCode, tuyaRefreshUserToken };

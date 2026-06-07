@@ -1,5 +1,5 @@
 // DripSolve Worker — serves static assets + API routes
-import { hashPassword, generateId, makeToken, verifyToken, tuyaApi, makeTuyaCreds } from './_shared.js';
+import { hashPassword, generateId, makeToken, verifyToken, tuyaApi, makeTuyaCreds, makeTuyaAppCreds, tuyaExchangeCode } from './_shared.js';
 
 async function handleRequest(request, env) {
   const url = new URL(request.url);
@@ -145,8 +145,21 @@ async function handleApi(request, env, path, method, url) {
       if (!code) return json({ error: 'No code' }, 400);
       const userId = state ? state.split(':')[0] : null;
       if (!userId) return json({ error: 'Invalid state' }, 400);
-      // Redirect back to dashboard
-      return Response.redirect(url.origin + '/dashboard.html', 302);
+      // Exchange the authorization code for a user token and persist it.
+      // Never throw out of the callback — always land the user back on the dashboard.
+      try {
+        const appCreds = makeTuyaAppCreds(env);
+        const tok = await tuyaExchangeCode(appCreds, code);
+        const expiresAt = new Date(Date.now() + (tok.expire_time || 7200) * 1000).toISOString();
+        await env.DB.prepare(
+          "INSERT INTO tuya_tokens (user_id, access_token, refresh_token, uid, expires_at) VALUES (?, ?, ?, ?, ?) " +
+          "ON CONFLICT(user_id) DO UPDATE SET access_token = excluded.access_token, refresh_token = excluded.refresh_token, uid = excluded.uid, expires_at = excluded.expires_at"
+        ).bind(userId, tok.access_token, tok.refresh_token, tok.uid, expiresAt).run();
+        return Response.redirect(url.origin + '/dashboard.html?tuya=connected', 302);
+      } catch (e) {
+        // Surface a short reason in the URL so we can debug the live flow.
+        return Response.redirect(url.origin + '/dashboard.html?tuya=error&reason=' + encodeURIComponent(e.message || 'exchange_failed'), 302);
+      }
     }
 
     if (action === 'status') {
