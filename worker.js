@@ -1,5 +1,5 @@
 // DripSolve Worker — serves static assets + API routes
-import { hashPassword, generateId, makeToken, verifyToken, tuyaApi, makeTuyaCreds, makeTuyaAppCreds, tuyaExchangeCode } from './_shared.js';
+import { hashPassword, generateId, makeToken, verifyToken, tuyaApi, tuyaApiWithToken, tuyaGetToken, makeTuyaCreds, makeTuyaAppCreds, tuyaExchangeCode } from './_shared.js';
 
 async function handleRequest(request, env) {
   const url = new URL(request.url);
@@ -216,63 +216,93 @@ async function handleApi(request, env, path, method, url) {
     if (!userId) return json({ error: 'Invalid token' }, 401);
 
     try {
-      const tuya = makeTuyaCreds(env);
-      const row = await env.DB.prepare('SELECT data FROM user_data WHERE user_id = ?').bind(userId).first();
-      const userData = row ? JSON.parse(row.data || '{}') : {};
-      const deviceIds = userData.tuyaDeviceIds || [];
-
-      if (!deviceIds.length) {
-        return json({ synced: false, error: 'No device IDs configured. Add a device ID in Settings.', devices: [], alerts: [] });
-      }
-
-      const devices = [];
-      const alerts = [];
-      for (const deviceId of deviceIds) {
-        try {
-          const devRes = await tuyaApi(tuya, 'GET', '/v1.0/iot-03/devices?device_ids=' + deviceId);
-          if (!devRes.success) continue;
-          for (const d of (devRes.result?.list || [])) {
-            const devInfo = { id: d.id, name: d.name, online: d.online, category: d.category_name || d.category };
-            if (d.category === 'sj' || d.category_name === 'Flooding Detector') {
-              const st = await tuyaApi(tuya, 'GET', '/v1.0/iot-03/devices/' + d.id + '/status');
-              if (st.success) {
-                for (const s of (st.result || [])) {
-                  if (s.code === 'watersensor_state') devInfo.waterSensorState = s.value;
-                  if (s.code === 'battery_percentage') devInfo.battery = s.value;
-                }
-                if (devInfo.waterSensorState === 'alarm') {
-                  alerts.push({ id: d.id, name: d.name, type: 'water_leak', severity: 'high', time: new Date().toISOString() });
-                }
-              }
-            }
-            devices.push(devInfo);
-          }
-        } catch (e) { continue; }
-      }
-
-      userData.tuyaDevices = devices;
-      userData.tuyaSyncedAt = new Date().toISOString();
-      // Dedup: don't re-add an alert for a device that already has the same
-      // alert type within the last 12h, so repeated polls don't pile up dupes.
-      const existingAlerts = userData.alerts || [];
-      const RECENT_MS = 12 * 60 * 60 * 1000;
-      const now = Date.now();
-      const freshAlerts = alerts.filter(a =>
-        !existingAlerts.some(e => e.id === a.id && e.type === a.type && (now - Date.parse(e.time || 0)) < RECENT_MS)
-      );
-      if (freshAlerts.length) {
-        userData.alerts = [...existingAlerts, ...freshAlerts];
-      }
-      await env.DB.prepare("INSERT INTO user_data (user_id, data, updated_at) VALUES (?, ?, datetime('now')) ON CONFLICT(user_id) DO UPDATE SET data = ?, updated_at = datetime('now')")
-        .bind(userId, JSON.stringify(userData), JSON.stringify(userData)).run();
-
-      return json({ synced: true, devices, alerts: freshAlerts });
+      const result = await syncUserData(env, userId);
+      return json({ synced: true, devices: result.devices, alerts: result.newAlerts });
     } catch (e) {
       return json({ error: e.message }, 502);
     }
   }
 
   return json({ error: 'Not found' }, 404);
+}
+
+// Poll Tuya for one user's devices, update live state + raise alerts. Shared by the
+// manual /api/tuya-sync endpoint and the scheduled cron. Pass a pre-fetched
+// {creds, token} (e.g. from the cron) to avoid re-fetching a token per user.
+async function syncUserData(env, userId, opts = {}) {
+  const creds = opts.creds || makeTuyaCreds(env);
+  const token = opts.token || await tuyaGetToken(creds);
+
+  const row = await env.DB.prepare('SELECT data FROM user_data WHERE user_id = ?').bind(userId).first();
+  const userData = row ? JSON.parse(row.data || '{}') : {};
+
+  // Devices to poll: each sensor's deviceId (real model) + legacy flat list.
+  const fromSensors = (userData.sensors || []).map(s => s.deviceId).filter(Boolean);
+  const legacy = userData.tuyaDeviceIds || [];
+  const deviceIds = [...new Set([...fromSensors, ...legacy])];
+
+  const nowIso = new Date().toISOString();
+  const deviceStates = {};
+  for (const deviceId of deviceIds) {
+    try {
+      const devRes = await tuyaApiWithToken(creds, token, 'GET', '/v1.0/iot-03/devices?device_ids=' + deviceId);
+      if (!devRes.success) continue;
+      for (const d of (devRes.result?.list || [])) {
+        const st = { id: d.id, name: d.name, online: d.online, category: d.category_name || d.category, lastSeen: nowIso };
+        if (d.category === 'sj' || d.category_name === 'Flooding Detector') {
+          const statusRes = await tuyaApiWithToken(creds, token, 'GET', '/v1.0/iot-03/devices/' + d.id + '/status');
+          if (statusRes.success) {
+            for (const s of (statusRes.result || [])) {
+              if (s.code === 'watersensor_state') st.waterState = s.value;
+              if (s.code === 'battery_percentage') st.battery = s.value;
+            }
+          }
+        }
+        deviceStates[d.id] = st;
+      }
+    } catch (e) { continue; }
+  }
+
+  // Build alert candidates (leak = critical, offline = warning), dedup vs. recent.
+  const existing = userData.alerts || [];
+  const RECENT_MS = 12 * 60 * 60 * 1000;
+  const now = Date.now();
+  const candidates = [];
+  for (const st of Object.values(deviceStates)) {
+    if (st.waterState === 'alarm') candidates.push({ id: st.id, name: st.name, type: 'water_leak', severity: 'critical', time: nowIso });
+    else if (st.online === false) candidates.push({ id: st.id, name: st.name, type: 'offline', severity: 'warning', time: nowIso });
+  }
+  const newAlerts = candidates.filter(a =>
+    !existing.some(e => e.id === a.id && e.type === a.type && (now - Date.parse(e.time || 0)) < RECENT_MS)
+  );
+
+  userData.deviceStates = deviceStates;
+  userData.tuyaDevices = Object.values(deviceStates); // back-compat for the status endpoint
+  userData.tuyaSyncedAt = nowIso;
+  if (newAlerts.length) userData.alerts = [...existing, ...newAlerts];
+
+  const raw = JSON.stringify(userData);
+  await env.DB.prepare("INSERT INTO user_data (user_id, data, updated_at) VALUES (?, ?, datetime('now')) ON CONFLICT(user_id) DO UPDATE SET data = ?, updated_at = datetime('now')")
+    .bind(userId, raw, raw).run();
+
+  return { devices: Object.values(deviceStates), deviceStates, newAlerts };
+}
+
+// Scheduled cron: poll every user's devices on a fixed interval. One Tuya token is
+// fetched and reused across all users/devices for the whole run.
+async function runScheduledSync(env) {
+  const creds = makeTuyaCreds(env);
+  let token;
+  try { token = await tuyaGetToken(creds); } catch (e) { return { ok: false, error: e.message }; }
+  const { results } = await env.DB.prepare('SELECT id FROM users').all();
+  let users = 0, alerts = 0;
+  for (const u of (results || [])) {
+    try {
+      const r = await syncUserData(env, u.id, { creds, token });
+      users++; alerts += r.newAlerts.length;
+    } catch (e) { /* skip this user, continue */ }
+  }
+  return { ok: true, users, alerts };
 }
 
 function json(data, status = 200) {
@@ -292,5 +322,10 @@ export default {
     } catch (e) {
       return json({ error: e.message }, 500);
     }
+  },
+
+  // Cloudflare Cron Trigger — automatic background monitoring of all users' sensors.
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(runScheduledSync(env));
   }
 };

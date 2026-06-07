@@ -86,6 +86,12 @@ async function tuyaGetToken(tuyaCreds) {
 
 async function tuyaApi(tuyaCreds, method, path) {
   const token = await tuyaGetToken(tuyaCreds);
+  return tuyaApiWithToken(tuyaCreds, token, method, path);
+}
+
+// Same as tuyaApi but reuses a pre-fetched access token (avoids one token round-trip
+// per call — important when polling many devices, e.g. the scheduled cron).
+async function tuyaApiWithToken(tuyaCreds, token, method, path) {
   const { sign, t } = await tuyaSign(tuyaCreds, method, path, token);
   const res = await fetch('https://openapi.tuyaus.com' + path, {
     method,
@@ -133,4 +139,4 @@ async function tuyaRefreshUserToken(creds, refreshToken, base = 'https://openapi
   return data.result; // { access_token, refresh_token, uid, expire_time }
 }
 
-export { hashPassword, generateId, makeToken, verifyToken, corsHeaders, json, tuyaSign, tuyaGetToken, tuyaApi, makeTuyaCreds, makeTuyaAppCreds, tuyaExchangeCode, tuyaRefreshUserToken };
+export { hashPassword, generateId, makeToken, verifyToken, corsHeaders, json, tuyaSign, tuyaGetToken, tuyaApi, tuyaApiWithToken, makeTuyaCreds, makeTuyaAppCreds, tuyaExchangeCode, tuyaRefreshUserToken };
