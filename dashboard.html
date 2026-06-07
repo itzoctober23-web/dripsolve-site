@@ -861,8 +861,13 @@
                     </div>
                 </div>
 
+                <div style="margin-bottom:20px">
+                    <div style="font-size:13px;font-weight:600;color:#64748b;margin-bottom:8px">Sensor Integration</div>
+                    <div id="tuyaStatus" style="background:#f8fafc;padding:16px;border-radius:8px;text-align:center;color:#64748b;font-size:14px">Checking connection...</div>
+                </div>
+
                 <button class="btn btn-outline" style="width:100%" onclick="showModal('settings-billing')">💳 Billing & payment</button>
-                <div style="margin-top:12px;font-size:12px;color:#94a3b8;text-align:center">Demo account — no real billing data. All changes are saved locally.</div>
+                <div style="margin-top:12px;font-size:12px;color:#94a3b8;text-align:center">Data syncs to cloud when signed in. Offline changes sync on next login.</div>
             </div>
         </div>
 
@@ -891,6 +896,7 @@ function switchView(view) {
     const titles = {dashboard:'Dashboard',properties:'Properties',sensors:'Sensors',alerts:'Alerts',reports:'Reports',settings:'Settings'};
     document.getElementById('pageTitle').textContent = titles[view] || 'Dashboard';
     document.getElementById('mockLabel').style.display = view === 'dashboard' ? 'block' : 'none';
+    if (view === 'settings') checkTuyaStatus();
 }
 
 // Property detail data
@@ -1923,8 +1929,83 @@ function toggleSetting(el, key) {
     const settings = Store.getSettings();
     settings[key] = !settings[key];
     Store.saveSettings(settings);
-    el.classList.toggle('on');
     el.classList.toggle('off');
+    if (!el.classList.contains('off')) {
+        document.querySelector('.toast-queue').innerHTML = '<div class="toast">' + ({criticalAlerts:'Critical alerts on', weeklySummary:'Weekly summary on', offlineAlerts:'Offline alerts on'})[key] + '</div>';
+        setTimeout(() => document.querySelector('.toast-queue').innerHTML = '', 2000);
+    }
+}
+
+// Tuya integration
+async function checkTuyaStatus() {
+    const el = document.getElementById('tuyaStatus');
+    if (!el) return;
+    try {
+        const res = await fetch(window.location.origin + '/api/tuya-auth?action=status', {
+            headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('dripsolve-token') || '') }
+        });
+        const data = await res.json();
+        if (data.connected) {
+            const deviceCount = data.devices ? data.devices.length : 0;
+            const waterDevices = data.devices ? data.devices.filter(d => d.is_water).length : 0;
+            el.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center">
+                <div><div style="font-weight:600;color:#0d9488">✅ Tuya connected</div>
+                <div style="font-size:13px;color:#64748b">${deviceCount} devices · ${waterDevices} water sensors</div></div>
+                <div style="display:flex;gap:8px">
+                    <button class="btn btn-outline" style="font-size:12px;padding:6px 12px" onclick="syncTuyaDevices()">Sync</button>
+                    <button class="btn btn-outline" style="font-size:12px;padding:6px 12px;color:#dc2626;border-color:#dc2626" onclick="disconnectTuya()">Disconnect</button>
+                </div></div>`;
+        } else {
+            el.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center">
+                <div><div style="font-weight:600">🔌 Not connected</div>
+                <div style="font-size:13px;color:#64748b">Link your Tuya Smart account to see sensors</div></div>
+                <button class="btn btn-primary" style="font-size:12px;padding:6px 14px" onclick="connectTuya()">Connect</button>
+            </div>`;
+        }
+    } catch (e) {
+        el.innerHTML = `<div style="color:#64748b;font-size:14px">⚠️ Tuya service not configured. Set up in Settings later.</div>`;
+    }
+}
+
+async function connectTuya() {
+    try {
+        const res = await fetch(window.location.origin + '/api/tuya-auth?action=authorize', {
+            headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('dripsolve-token') || '') }
+        });
+        const data = await res.json();
+        if (data.url) window.location.href = data.url;
+        else alert('Failed to get authorization URL: ' + (data.error || 'Unknown error'));
+    } catch (e) {
+        alert('Error: ' + e.message);
+    }
+}
+
+async function disconnectTuya() {
+    if (!confirm('Disconnect your Tuya account? Sensors will stop syncing.')) return;
+    try {
+        await fetch(window.location.origin + '/api/tuya-auth?action=disconnect', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('dripsolve-token') || ''), 'Content-Type': 'application/json' },
+            body: '{}'
+        });
+        checkTuyaStatus();
+    } catch (e) {
+        alert('Error: ' + e.message);
+    }
+}
+
+async function syncTuyaDevices() {
+    const el = document.getElementById('tuyaStatus');
+    if (el) el.innerHTML = '<div style="color:#64748b;font-size:14px">🔄 Syncing Tuya devices...</div>';
+    try {
+        const res = await fetch(window.location.origin + '/api/tuya-sync', {
+            headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('dripsolve-token') || '') }
+        });
+        await res.json();
+        checkTuyaStatus();
+    } catch (e) {
+        if (el) el.innerHTML = '<div style="color:#dc2626;font-size:14px">❌ Sync failed. Try again.</div>';
+    }
 }
 
 function switchPlan(plan) {

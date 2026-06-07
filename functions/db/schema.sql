@@ -25,5 +25,16 @@ CREATE TABLE IF NOT EXISTS sensor_readings (
   FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
+CREATE TABLE IF NOT EXISTS tuya_tokens (
+  user_id TEXT PRIMARY KEY,
+  access_token TEXT NOT NULL,
+  refresh_token TEXT NOT NULL,
+  tuya_uid TEXT DEFAULT '',
+  expires_at TEXT,
+  created_at TEXT DEFAULT (datetime('now')),
+  updated_at TEXT DEFAULT (datetime('now')),
+  FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
 CREATE INDEX IF NOT EXISTS idx_sensor_readings_sensor ON sensor_readings(sensor_id, timestamp);
 CREATE INDEX IF NOT EXISTS idx_sensor_readings_user ON sensor_readings(user_id, timestamp);
