@@ -8,7 +8,7 @@ DripSolve is a SaaS water leak detection dashboard platform. Users buy Tuya-comp
 
 - **Hosting**: Cloudflare Workers (single `worker.js` with static assets from `dist/`)
 - **Database**: Cloudflare D1 (SQLite-compatible), database name `dripsolve-db`
-- **Auth**: Custom JWT-like tokens (PBKDF2 password hashing, HMAC-based tokens, 30-day expiry)
+- **Auth**: Custom JWT tokens — PBKDF2 password hashing, real HMAC-SHA256 signed tokens (`header.payload.signature`), 30-day expiry. `JWT_SECRET` is a Cloudflare secret (NOT in source/wrangler.toml); the Worker fails closed with a 500 if it is unset.
 - **Payments**: Stripe Payment Links (redirect-based, no Stripe SDK needed)
 - **Tuya API**: Direct REST calls to `openapi.tuyaus.com` with HMAC-SHA256 signing
 - **Static files**: `index.html` (landing page), `dashboard.html` (SaaS dashboard) served from `dist/`
@@ -155,7 +155,7 @@ For business endpoints: `GET /v1.0/iot-03/devices/{id}` (include access_token in
 | GitHub | Repo: `itzoctober23-web/dripsolve-site` (auto-deploy from main branch not active) |
 | D1 Database | Name: `dripsolve-db`, ID: `a2bae2de-21c3-482f-8026-951a10096be7` |
 | Custom domain | `dripsolve.com` on Cloudflare, proxied to Worker |
-| JWT Secret (hardcoded) | `dripsolve-jwt-secret-2026` (in worker.js) |
+| JWT Secret | Cloudflare secret `JWT_SECRET` — set via `wrangler secret put JWT_SECRET`. NOT in source. (Old hardcoded `dripsolve-jwt-secret-2026` is retired.) |
 
 ## Current Status (June 7, 2026)
 
