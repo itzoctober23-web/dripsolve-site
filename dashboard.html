@@ -1383,9 +1383,9 @@ const STRIPE_CONFIG = {
         portfolio: 'price_1TfUe0AwCnNVnY0RfSXrUbwM'
     },
     paymentLinks: {
-        starter: null,
-        pro: null,
-        portfolio: null
+        starter: 'https://buy.stripe.com/plink_1TfUiBAwCnNVnY0RhPKvZlrR',
+        pro: 'https://buy.stripe.com/plink_1TfUj3AwCnNVnY0R9FxCovsz',
+        portfolio: 'https://buy.stripe.com/plink_1TfUjVAwCnNVnY0RE49m726P'
     },
     plans: [
         { id: 'starter', name: 'Starter', price: '$49/mo', desc: '25 sensors · 1 property', popular: false },
@@ -1396,18 +1396,6 @@ const STRIPE_CONFIG = {
 };
 
 const stripe = Stripe(STRIPE_CONFIG.publishableKey);
-
-function subscribe(priceId) {
-    stripe.redirectToCheckout({
-        lineItems: [{ price: priceId, quantity: 1 }],
-        mode: 'subscription',
-        successUrl: window.location.origin + '/dashboard.html?subscribed=true',
-        cancelUrl: window.location.origin + '/dashboard.html'
-    }).catch(err => {
-        // Fallback if redirectToCheckout fails (e.g. no sessionId returned)
-        window.open('https://buy.stripe.com/8wAaF65iB8wAaF6', '_blank');
-    });
-}
 
 // Check for successful subscription on page load
 (function() {
@@ -1707,7 +1695,7 @@ function showModal(key) {
                     const isCurrent = p.id === currentPlan;
                     const extraStyle = isCurrent ? 'border-color:#0d9488;background:#f0fdfa' : '';
                     const badge = isCurrent ? ' <span style="font-size:11px;color:#0d9488">Current</span>' : '';
-                    const onclick = p.link ? `window.open('${p.link}','_blank')` : `subscribe('${STRIPE_CONFIG.priceIds[p.id]}')`;
+                    const onclick = p.link ? `window.open('${p.link}','_blank')` : `window.open('${STRIPE_CONFIG.paymentLinks[p.id]}','_blank')`;
                     return `<a href="#" onclick="${onclick};return false" class="btn btn-outline" style="text-align:left;padding:12px;text-decoration:none;display:block;${extraStyle}">🟢 ${p.name} · ${p.price} · ${p.desc}${badge}</a>`;
                 }).join('');
             }
