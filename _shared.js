@@ -36,4 +36,42 @@ function json(data, status = 200) {
   return new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json', ...corsHeaders() } });
 }
 
-export { hashPassword, generateId, makeToken, verifyToken, corsHeaders, json };
+// ─── Tuya Cloud API utilities ───
+async function tuyaSign(secret, method, path, token) {
+  const t = Date.now().toString();
+  const bodyHashBytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(''));
+  const bodyHash = Array.from(new Uint8Array(bodyHashBytes)).map(b => b.toString(16).padStart(2, '0')).join('');
+  const stringToSign = method + '\n' + bodyHash + '\n\n' + path;
+  const str = secret.client_id + (token || '') + t + stringToSign;
+  const enc = new TextEncoder();
+  const key = await crypto.subtle.importKey('raw', enc.encode(secret.client_secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const sig = await crypto.subtle.sign('HMAC', key, enc.encode(str));
+  const sign = Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
+  return { sign, t };
+}
+
+async function tuyaGetToken(tuyaCreds) {
+  const { sign, t } = await tuyaSign(tuyaCreds, 'GET', '/v1.0/token?grant_type=1');
+  const res = await fetch('https://openapi.tuyaus.com/v1.0/token?grant_type=1', {
+    headers: { client_id: tuyaCreds.client_id, sign, t, sign_method: 'HMAC-SHA256' }
+  });
+  const data = await res.json();
+  if (!data.success) throw new Error('Tuya token: ' + data.msg);
+  return data.result.access_token;
+}
+
+async function tuyaApi(tuyaCreds, method, path) {
+  const token = await tuyaGetToken(tuyaCreds);
+  const { sign, t } = await tuyaSign(tuyaCreds, method, path, token);
+  const res = await fetch('https://openapi.tuyaus.com' + path, {
+    method,
+    headers: { client_id: tuyaCreds.client_id, access_token: token, sign, t, sign_method: 'HMAC-SHA256' }
+  });
+  return res.json();
+}
+
+function makeTuyaCreds(env) {
+  return { client_id: env.TUYA_CLIENT_ID, client_secret: env.TUYA_CLIENT_SECRET };
+}
+
+export { hashPassword, generateId, makeToken, verifyToken, corsHeaders, json, tuyaSign, tuyaGetToken, tuyaApi, makeTuyaCreds };

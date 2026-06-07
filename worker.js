@@ -1,5 +1,5 @@
 // DripSolve Worker — serves static assets + API routes
-import { hashPassword, generateId, makeToken, verifyToken } from './_shared.js';
+import { hashPassword, generateId, makeToken, verifyToken, tuyaApi, makeTuyaCreds } from './_shared.js';
 
 const JWT_SECRET = 'dripsolve-jwt-secret-2026';
 
@@ -165,13 +165,87 @@ async function handleApi(request, env, path, method, url) {
     return json({ error: 'Unknown action' }, 400);
   }
 
-  // Tuya sync
+  // Add device IDs for Tuya monitoring
+  if (path === '/api/tuya-devices') {
+    const auth = request.headers.get('Authorization');
+    if (!auth) return json({ error: 'No token' }, 401);
+    const userId = await verifyToken(auth.replace('Bearer ', ''), JWT_SECRET);
+    if (!userId) return json({ error: 'Invalid token' }, 401);
+
+    if (method === 'POST') {
+      const { device_ids } = body;
+      if (!device_ids || !Array.isArray(device_ids)) return json({ error: 'device_ids array required' }, 400);
+      const row = await env.DB.prepare('SELECT data FROM user_data WHERE user_id = ?').bind(userId).first();
+      const userData = row ? JSON.parse(row.data || '{}') : {};
+      userData.tuyaDeviceIds = device_ids;
+      await env.DB.prepare("INSERT INTO user_data (user_id, data, updated_at) VALUES (?, ?, datetime('now')) ON CONFLICT(user_id) DO UPDATE SET data = ?, updated_at = datetime('now')")
+        .bind(userId, JSON.stringify(userData), JSON.stringify(userData)).run();
+      return json({ ok: true, device_ids: device_ids });
+    }
+
+    if (method === 'GET') {
+      const row = await env.DB.prepare('SELECT data FROM user_data WHERE user_id = ?').bind(userId).first();
+      const userData = row ? JSON.parse(row.data || '{}') : {};
+      return json({ device_ids: userData.tuyaDeviceIds || [] });
+    }
+
+    return json({ error: 'Method not allowed' }, 405);
+  }
+
+  // Tuya sync - list devices and detect leaks
   if (path === '/api/tuya-sync') {
     const auth = request.headers.get('Authorization');
     if (!auth) return json({ error: 'No token' }, 401);
     const userId = await verifyToken(auth.replace('Bearer ', ''), JWT_SECRET);
     if (!userId) return json({ error: 'Invalid token' }, 401);
-    return json({ synced: true });
+
+    try {
+      const tuya = makeTuyaCreds(env);
+      const row = await env.DB.prepare('SELECT data FROM user_data WHERE user_id = ?').bind(userId).first();
+      const userData = row ? JSON.parse(row.data || '{}') : {};
+      const deviceIds = userData.tuyaDeviceIds || [];
+
+      if (!deviceIds.length) {
+        return json({ synced: false, error: 'No device IDs configured. Add a device ID in Settings.', devices: [], alerts: [] });
+      }
+
+      const devices = [];
+      const alerts = [];
+      for (const deviceId of deviceIds) {
+        try {
+          const devRes = await tuyaApi(tuya, 'GET', '/v1.0/iot-03/devices?device_ids=' + deviceId);
+          if (!devRes.success) continue;
+          for (const d of (devRes.result?.list || [])) {
+            const devInfo = { id: d.id, name: d.name, online: d.online, category: d.category_name || d.category };
+            if (d.category === 'sj' || d.category_name === 'Flooding Detector') {
+              const st = await tuyaApi(tuya, 'GET', '/v1.0/iot-03/devices/' + d.id + '/status');
+              if (st.success) {
+                for (const s of (st.result || [])) {
+                  if (s.code === 'watersensor_state') devInfo.waterSensorState = s.value;
+                  if (s.code === 'battery_percentage') devInfo.battery = s.value;
+                }
+                if (devInfo.waterSensorState === 'alarm') {
+                  alerts.push({ id: d.id, name: d.name, type: 'water_leak', severity: 'high', time: new Date().toISOString() });
+                }
+              }
+            }
+            devices.push(devInfo);
+          }
+        } catch (e) { continue; }
+      }
+
+      userData.tuyaDevices = devices;
+      userData.tuyaSyncedAt = new Date().toISOString();
+      if (alerts.length) {
+        userData.alerts = [...(userData.alerts || []), ...alerts];
+      }
+      await env.DB.prepare("INSERT INTO user_data (user_id, data, updated_at) VALUES (?, ?, datetime('now')) ON CONFLICT(user_id) DO UPDATE SET data = ?, updated_at = datetime('now')")
+        .bind(userId, JSON.stringify(userData), JSON.stringify(userData)).run();
+
+      return json({ synced: true, devices, alerts });
+    } catch (e) {
+      return json({ error: e.message }, 502);
+    }
   }
 
   return json({ error: 'Not found' }, 404);
