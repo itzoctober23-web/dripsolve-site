@@ -1422,7 +1422,9 @@ function showSubscribe(planId) {
     document.getElementById('subEmail').value = document.getElementById('loginEmail').value || 'admin@dripsolve.com';
     document.getElementById('subSuccess').style.display = 'none';
     document.getElementById('subForm').style.display = 'block';
-    document.getElementById('subscribeOverlay').classList.remove('hidden');
+    const el = document.getElementById('subscribeOverlay');
+    el.classList.remove('hidden');
+    el.style.display = 'flex';
 }
 
 function closeSubscribe() {
