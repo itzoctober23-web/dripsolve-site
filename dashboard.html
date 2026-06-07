@@ -233,16 +233,19 @@
     <div id="loginScreen" class="login-screen">
         <div class="login-box">
             <svg width="120" height="28" viewBox="0 0 140 32" fill="none"><path d="M14 28L3 21V10L14 3L25 10V21L14 28Z" fill="#0d9488"/><path d="M7 14L12 19L21 10" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><text x="32" y="22" font-family="Inter" font-size="18" font-weight="900" fill="#0f172a">DRIP</text><text x="84" y="22" font-family="Inter" font-size="18" font-weight="600" fill="#0d9488">SOLVE</text></svg>
-            <div style="font-size:22px;font-weight:700;margin:20px 0 4px">Welcome back</div>
-            <div style="font-size:14px;color:#6b7280;margin-bottom:28px">Sign in to your dashboard</div>
-            <form onsubmit="return handleLogin(this)">
+            <div style="font-size:22px;font-weight:700;margin:20px 0 4px" id="loginTitle">Welcome back</div>
+            <div style="font-size:14px;color:#6b7280;margin-bottom:28px" id="loginSub">Sign in to your dashboard</div>
+            <form onsubmit="return handleLogin(this)" id="loginForm">
                 <div class="form-group"><label>Email</label><input id="loginEmail" type="email" placeholder="name@company.com" required></div>
+                <div id="loginNameGroup" class="form-group" style="display:none"><label>Name</label><input id="loginName" type="text" placeholder="Your name"></div>
                 <div class="form-group"><label>Password</label><input id="loginPass" type="password" placeholder="Enter password" required></div>
                 <div id="loginError" style="color:#dc2626;font-size:14px;margin-bottom:12px;display:none;text-align:left">Invalid email or password</div>
-                <button type="submit" class="btn btn-primary" style="width:100%">Sign in</button>
+                <button type="submit" class="btn btn-primary" style="width:100%" id="loginBtn">Sign in</button>
             </form>
-            <hr class="divider">
-            <div class="hint">Demo: admin@dripsolve.com / demo123</div>
+            <div style="text-align:center;margin-top:16px;font-size:13px;color:#6b7280">
+                <span id="loginToggleText">Don't have an account?</span>
+                <a href="#" onclick="toggleAuthMode()" id="loginToggleLink" style="color:#0d9488;font-weight:600;text-decoration:none">Sign up</a>
+            </div>
         </div>
     </div>
     <div id="subscribeOverlay" class="overlay hidden" style="z-index:3000;background:rgba(15,23,42,0.5)">
@@ -949,6 +952,72 @@ function savePropertyDetail() {
 }
 
 // ─── localStorage Data Layer ───
+// ─── API Client (syncs to Cloudflare backend) ───
+const API = {
+    base: window.location.origin + '/api',
+
+    async request(path, opts = {}) {
+        const token = localStorage.getItem('dripsolve-token');
+        const headers = { 'Content-Type': 'application/json', ...opts.headers };
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+        const res = await fetch(this.base + path, { ...opts, headers });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Request failed');
+        return data;
+    },
+
+    async login(email, password) {
+        const data = await this.request('/auth?action=login', { method: 'POST', body: JSON.stringify({ email, password }) });
+        localStorage.setItem('dripsolve-token', data.token);
+        localStorage.setItem('dripsolve-user', JSON.stringify(data.user));
+        return data;
+    },
+
+    async signup(email, password, name) {
+        const data = await this.request('/auth?action=signup', { method: 'POST', body: JSON.stringify({ email, password, name }) });
+        localStorage.setItem('dripsolve-token', data.token);
+        localStorage.setItem('dripsolve-user', JSON.stringify(data.user));
+        return data;
+    },
+
+    async verify() {
+        const token = localStorage.getItem('dripsolve-token');
+        if (!token) return null;
+        try {
+            const data = await this.request('/auth?action=verify', { method: 'POST', body: '{}' });
+            return data.user || null;
+        } catch { localStorage.removeItem('dripsolve-token'); return null; }
+    },
+
+    async loadData() {
+        return await this.request('/data');
+    },
+
+    async saveData(data) {
+        await this.request('/data', { method: 'PUT', body: JSON.stringify(data) });
+    },
+
+    async subscribe(planId) {
+        const data = await this.request('/subscribe', { method: 'POST', body: JSON.stringify({ plan: planId }) });
+        return data;
+    },
+};
+
+async function syncLocalToAPI() {
+    const raw = localStorage.getItem(Store.key);
+    if (!raw) return;
+    try { await API.saveData(JSON.parse(raw)); } catch {}
+}
+
+async function syncAPIToLocal() {
+    try {
+        const data = await API.loadData();
+        if (data && data.properties) {
+            localStorage.setItem(Store.key, JSON.stringify(data));
+        }
+    } catch {}
+}
+
 const Store = {
     key: 'dripsolve-demo',
 
@@ -1014,7 +1083,11 @@ const Store = {
     },
 
     get() { return JSON.parse(localStorage.getItem(this.key) || '{}'); },
-    save(db) { localStorage.setItem(this.key, JSON.stringify(db)); },
+    save(db) {
+        localStorage.setItem(this.key, JSON.stringify(db));
+        const token = localStorage.getItem('dripsolve-token');
+        if (token) API.saveData(db).catch(() => {});
+    },
 
     getProperties() { return this.get().properties || []; },
     getProperty(id) { return this.getProperties().find(p => p.id === id); },
@@ -1335,19 +1408,39 @@ function getCreds() {
     if (c) return JSON.parse(c);
     return { email: 'admin@dripsolve.com', password: 'demo123' };
 }
+let isSignupMode = false;
+
+function toggleAuthMode() {
+    isSignupMode = !isSignupMode;
+    document.getElementById('loginTitle').textContent = isSignupMode ? 'Create your account' : 'Welcome back';
+    document.getElementById('loginSub').textContent = isSignupMode ? 'Start monitoring your properties' : 'Sign in to your dashboard';
+    document.getElementById('loginBtn').textContent = isSignupMode ? 'Create account' : 'Sign in';
+    document.getElementById('loginNameGroup').style.display = isSignupMode ? 'block' : 'none';
+    document.getElementById('loginToggleText').textContent = isSignupMode ? 'Already have an account?' : "Don't have an account?";
+    document.getElementById('loginToggleLink').textContent = isSignupMode ? 'Sign in' : 'Sign up';
+    document.getElementById('loginError').style.display = 'none';
+}
+
 function handleLogin(form) {
     const email = document.getElementById('loginEmail').value.trim();
     const pass = document.getElementById('loginPass').value.trim();
-    const creds = getCreds();
-    if (email === creds.email && pass === creds.password) {
+    const name = document.getElementById('loginName').value.trim();
+    document.getElementById('loginError').style.display = 'none';
+
+    const action = isSignupMode ? API.signup(email, pass, name) : API.login(email, pass);
+    action.then(data => {
         localStorage.setItem('dripsolve-session', email);
         document.getElementById('loginScreen').classList.add('hidden');
-        return false;
-    }
-    document.getElementById('loginError').style.display = 'block';
+        location.reload();
+    }).catch(err => {
+        document.getElementById('loginError').style.display = 'block';
+        document.getElementById('loginError').textContent = err.message;
+    });
     return false;
 }
 function logout() {
+    localStorage.removeItem('dripsolve-token');
+    localStorage.removeItem('dripsolve-user');
     localStorage.removeItem('dripsolve-session');
     location.reload();
 }
@@ -1355,12 +1448,8 @@ function changePassword(form) {
     const current = document.getElementById('setCurrentPass').value;
     const newPass = document.getElementById('setNewPass').value;
     const confirm = document.getElementById('setConfirmPass').value;
-    const creds = getCreds();
-    if (current !== creds.password) {
-        document.getElementById('passError').style.display = 'block';
-        document.getElementById('passError').textContent = 'Current password is incorrect';
-        return false;
-    }
+    document.getElementById('passError').style.display = 'none';
+    document.getElementById('passSuccess').style.display = 'none';
     if (newPass.length < 6) {
         document.getElementById('passError').style.display = 'block';
         document.getElementById('passError').textContent = 'New password must be at least 6 characters';
@@ -1371,28 +1460,49 @@ function changePassword(form) {
         document.getElementById('passError').textContent = 'Passwords do not match';
         return false;
     }
-    creds.password = newPass;
-    localStorage.setItem('dripsolve-auth', JSON.stringify(creds));
-    document.getElementById('passError').style.display = 'none';
-    document.getElementById('passSuccess').style.display = 'block';
-    document.getElementById('setCurrentPass').value = '';
-    document.getElementById('setNewPass').value = '';
-    document.getElementById('setConfirmPass').value = '';
+    API.request('/auth?action=change-password', {
+        method: 'POST',
+        body: JSON.stringify({ currentPassword: current, newPassword })
+    }).then(() => {
+        document.getElementById('passSuccess').style.display = 'block';
+        document.getElementById('setCurrentPass').value = '';
+        document.getElementById('setNewPass').value = '';
+        document.getElementById('setConfirmPass').value = '';
+    }).catch(err => {
+        document.getElementById('passError').style.display = 'block';
+        document.getElementById('passError').textContent = err.message;
+    });
     return false;
 }
 
-// Check session on load
+// Check session on load — verify with API in background
 (function() {
-    if (!localStorage.getItem('dripsolve-session')) {
+    const session = localStorage.getItem('dripsolve-session');
+    if (!session) {
         document.getElementById('loginScreen').classList.remove('hidden');
-    } else {
-        document.getElementById('loginScreen').classList.add('hidden');
+        Store.init();
+        renderAll();
+        window.__rendered = true;
+        return;
     }
+    document.getElementById('loginScreen').classList.add('hidden');
+    API.verify().then(user => {
+        if (user) return syncAPIToLocal();
+    }).catch(() => {}).then(() => {
+        if (!window.__rendered) {
+            Store.init();
+            renderAll();
+            window.__rendered = true;
+        }
+    });
+    setTimeout(() => {
+        if (!window.__rendered) {
+            Store.init();
+            renderAll();
+            window.__rendered = true;
+        }
+    }, 600);
 })();
-
-// Initialize and render
-Store.init();
-renderAll();
 
 // ─── Stripe ───
 const STRIPE_CONFIG = {
