@@ -253,15 +253,15 @@
             <button class="close" onclick="closeSubscribe()">✕</button>
             <div style="font-size:48px;margin-bottom:8px;text-align:center">🚀</div>
             <h3 style="text-align:center;margin-bottom:4px">Upgrade to <span id="subPlan">Pro</span></h3>
-            <div style="text-align:center;font-size:14px;color:#64748b;margin-bottom:20px"><span id="subPrice">$99/mo</span> · <span id="subDesc">100 sensors</span></div>
+            <div style="text-align:center;font-size:14px;color:#64748b;margin-bottom:20px"><span id="subPrice">$99 one-time</span> · <span id="subDesc">100 sensors</span></div>
             <div id="subForm" style="text-align:center">
                 <p style="font-size:14px;color:#475569;margin-bottom:16px">You'll be redirected to Stripe's secure checkout to complete payment.</p>
                 <button class="btn btn-primary" onclick="openCheckout()" style="width:100%;padding:12px">Continue to Stripe</button>
-                <div style="margin-top:12px;font-size:11px;color:#94a3b8">🔒 Secured by Stripe · <span id="subPrice2">$99/mo</span></div>
+                <div style="margin-top:12px;font-size:11px;color:#94a3b8">🔒 Secured by Stripe · <span id="subPrice2">$99 one-time</span></div>
             </div>
             <div id="subSuccess" style="display:none;text-align:center;padding:16px">
                 <div style="font-size:48px;margin-bottom:8px">🎉</div>
-                <div style="font-size:18px;font-weight:700;margin-bottom:4px">You're subscribed!</div>
+                <div style="font-size:18px;font-weight:700;margin-bottom:4px">Payment complete!</div>
                 <div style="font-size:13px;color:#64748b;margin-bottom:8px"><span id="subPlanConfirm">Pro</span> plan activated.</div>
                 <div style="font-size:12px;color:#94a3b8;margin-bottom:16px">Returned from Stripe? Click confirm to activate your plan on this device.</div>
                 <button class="btn btn-primary" onclick="confirmSubscription()" style="padding:10px 24px">Confirm & refresh</button>
@@ -854,9 +854,9 @@
                 </div>
 
                 <div style="margin-bottom:20px">
-                    <div style="font-size:13px;font-weight:600;color:#64748b;margin-bottom:8px">Subscription</div>
+                    <div style="font-size:13px;font-weight:600;color:#64748b;margin-bottom:8px">Your plan</div>
                     <div style="background:#f0fdfa;padding:16px;border-radius:8px;display:flex;justify-content:space-between;align-items-center">
-                        <div><div style="font-weight:600">Pro plan</div><div style="font-size:13px;color:#64748b">$99/mo · 100 sensors · 5 properties</div></div>
+                        <div><div style="font-weight:600">Pro plan</div><div style="font-size:13px;color:#64748b">$99 one-time · 100 sensors · 5 properties</div></div>
                         <button class="btn btn-outline" style="font-size:13px;padding:6px 14px" onclick="showModal('manage-plan')">Manage</button>
                     </div>
                 </div>
@@ -1529,9 +1529,9 @@ const STRIPE_CONFIG = {
         portfolio: 'https://buy.stripe.com/9B65kC0xFfdv7NjeQ1asg02'
     },
     plans: [
-        { id: 'starter', name: 'Starter', price: '$49/mo', desc: '25 sensors · 1 property', popular: false },
-        { id: 'pro', name: 'Pro', price: '$99/mo', desc: '100 sensors · 5 properties', popular: true },
-        { id: 'portfolio', name: 'Portfolio', price: '$199/mo', desc: '500 sensors · 25 properties', popular: false },
+        { id: 'starter', name: 'Starter', price: '$49 one-time', desc: '25 sensors · 1 property', popular: false },
+        { id: 'pro', name: 'Pro', price: '$99 one-time', desc: '100 sensors · 5 properties', popular: true },
+        { id: 'portfolio', name: 'Portfolio', price: '$199 one-time', desc: '500 sensors · 25 properties', popular: false },
         { id: 'enterprise', name: 'Enterprise', price: 'Custom', desc: 'Unlimited', popular: false, link: 'mailto:hello@dripsolve.com?subject=Enterprise%20plan' }
     ]
 };
@@ -1770,15 +1770,15 @@ const data = {
     'settings-billing': {
         icon: '💳',
         title: 'Billing',
-        sub: 'Pro plan · $99/mo',
+        sub: 'Pro plan · $99 one-time',
         desc: 'Monthly billing via credit card. No contracts — cancel anytime. You keep your sensors and can still use them with other platforms if you leave. Invoices available for download. Annual billing available at 2 months off ($990/yr).',
         highlight: '💰 Cancel anytime. No early termination fees. Your data is exportable on cancellation.'
     },
     'manage-plan': {
         icon: '📋',
         title: 'Manage plan',
-        sub: 'Current: Pro · $99/mo',
-        form: '<div style="margin-bottom:8px;font-size:13px;color:#64748b">Choose a plan — billed monthly. Cancel anytime.</div><div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px" id="planLinks"></div><div class="highlight" id="planConfirm">💳 Secure checkout via Stripe. Your card is charged after you confirm the subscription.</div>',
+        sub: 'Current: Pro · $99 one-time',
+        form: '<div style="margin-bottom:8px;font-size:13px;color:#64748b">Choose a plan — one-time payment, no recurring charges.</div><div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px" id="planLinks"></div><div class="highlight" id="planConfirm">💳 Secure checkout via Stripe. Your card is charged once after you confirm.</div>',
         wide: true
     },
     'add-sensor': {
@@ -1847,7 +1847,7 @@ const data = {
         icon: '👤',
         title: 'Jane Miller',
         sub: 'Portfolio owner · jane@dripsolve.com',
-        desc: 'You manage 4 apartment buildings with 86 sensors deployed across your portfolio. Pro plan · $99/mo. Member since March 2026.',
+        desc: 'You manage 4 apartment buildings with 86 sensors deployed across your portfolio. Pro plan · $99 one-time. Member since March 2026.',
         highlight: '🏢 4 properties · 86 sensors · 14 leaks prevented · $0 in water damage claims since joining.'
     },
     'removed': {
@@ -2102,7 +2102,7 @@ async function removeTuyaDevice(id) {
 }
 
 function switchPlan(plan) {
-    const labels = { starter:'Starter · $49/mo', pro:'Pro · $99/mo', portfolio:'Portfolio · $199/mo', enterprise:'Enterprise · Custom' };
+    const labels = { starter:'Starter · $49 one-time', pro:'Pro · $99 one-time', portfolio:'Portfolio · $199 one-time', enterprise:'Enterprise · Custom' };
     const settings = Store.getSettings();
     settings.plan = plan;
     Store.saveSettings(settings);
